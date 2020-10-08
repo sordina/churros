@@ -1,0 +1,8 @@
+
+packages: .
+
+package *
+  ghc-options: -j
+
+package churros
+  ghc-options: -j -Wall -threaded
