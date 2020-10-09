@@ -6,17 +6,19 @@ author:              Lyndon Maydwell
 maintainer:          lyndon@sordina.net
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
--- synopsis:
--- description:
+license:             MIT
+synopsis:            Churros: Channel/Arrow based streaming computation library.
+category:            Data, Control
+description:         The Churro library takes an opinionated approach to streaming
+                     by focusing on IO processes and allowing different transport
+                     options.
 -- bug-reports:
--- license:
 -- copyright:
--- category:
 
 common churros-dependencies
   default-language: Haskell2010
   build-depends:
-    base,
+    base >= 4.10 && < 4.15,
     time,
     async,
     stm,
@@ -38,9 +40,11 @@ test-suite churros-test
   type:              exitcode-stdio-1.0
   hs-source-dirs:    src,test
   main-is:           Churro/Test/Main.hs
+  build-depends:     doctest
   other-modules:
     Control.Churro,
+    Control.Churro.Types,
     Control.Churro.Prelude,
     Control.Churro.Transport,
     Control.Churro.Transport.Chan,
-    Control.Churro.Types
+    Churro.Test.Examples

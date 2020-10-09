@@ -5,27 +5,40 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE Arrows #-}
 
--- | CSP like library: Arrow interface
+-- | Recommended entrypoint for the Churro library.
 --
--- TODO:
--- 
---   * [x] Recovery/Retry capability
---   * [x] Fix await deadlock
---   * [x] Generic Chan functions, then specific newtype
---   * [x] Stop using list functions
---   * [x] Different transport options, buffered, etc.
---   * [ ] Different transports for sections of the graph
---   * [ ] Allow configurable parallelism
---   * [ ] Early termination if downstream consumer completes
+--   Contains enough functionality to use the package as intended.
+--
+--   See README.md for more information.
 -- 
 module Control.Churro
 
-    ( module Control.Churro.Types
+    (
+
+    -- ** Churro Packages
+
+    module Control.Churro.Types
     , module Control.Churro.Prelude
     , module Control.Churro.Transport
-    , module Control.Arrow
-    , module Control.Category
+
+    -- ** Other Packages
+
+    -- *** Re-exported from Control.Category
+    , Control.Category.id
+
+    -- *** Re-exported from Control.Arrow
+    , Control.Arrow.arr
+    , Control.Arrow.first
+    , Control.Arrow.second
+    , (Control.Arrow.>>>)
+    , (Control.Arrow.<<<)
+    , (Control.Arrow.&&&)
+    , (Control.Arrow.***)
+
+    -- *** Re-exported from Data.Void
     , Void()
+
+    -- *** Re-exported from GHC.Natural
     , Natural(..)
     )
 

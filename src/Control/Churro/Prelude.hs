@@ -20,7 +20,7 @@ import GHC.Natural (Natural)
 import Control.Monad (replicateM_, when)
 import Data.Time (NominalDiffTime)
 
--- Runners
+-- * Runners
 
 runWait :: Transport t => Churro t Void Void -> IO ()
 runWait x = wait =<< run x
@@ -35,7 +35,9 @@ run' c = do
     (_i,_o,a) <- runChurro (sourceList [] >>> c)
     return a
 
--- Library
+-- * Library
+
+-- ** Sources
 
 sourceList :: (Transport t, Foldable f) => f o -> Churro t Void o
 sourceList = sourceIO . for_
@@ -46,11 +48,15 @@ sourceIO cb =
         cb (yeet o . Just)
         yeet o Nothing
 
+-- ** Sinks
+
 sinkIO :: Transport t => (o -> IO ()) -> Churro t o Void
 sinkIO cb = buildChurro \i _o -> yankAll i cb
 
 sinkPrint :: (Transport t, Show a) => Churro t a Void
 sinkPrint = sinkIO print
+
+-- ** Churros
 
 process :: Transport t => (a -> IO b) -> Churro t a b
 process f = processN (fmap pure . f)

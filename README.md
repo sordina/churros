@@ -24,3 +24,14 @@ main = do
    runWaitChan        $ sourceList [1..10] >>> processDebug "after source" >>> delay 1 {- seconds -} >>> arr succ >>> sinkPrint
    wait =<< run @Chan $ sourceIO (\cb -> cb 1 >> print "Doing whatever!" >> cb 5) >>> filterC (> 3) >>> sinkIO print
 ```
+
+## TODO
+
+* [x] Recovery/Retry capability
+* [x] Fix await deadlock
+* [x] Generic Chan functions, then specific newtype
+* [x] Stop using list functions
+* [x] Different transport options, buffered, etc.
+* [ ] Different transports for sections of the graph
+* [ ] Allow configurable parallelism
+* [ ] Early termination if downstream consumer completes
