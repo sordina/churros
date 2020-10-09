@@ -89,7 +89,7 @@ test6 = sourceList [1::Int ..10] >>> delay 1 >>> takeC (2::Int) >>> sinkPrint
 -- | Checks that the IO nature of the churros doesn't duplicate operation
 -- | Should only print:
 --
--- >>> runWaitChan test6
+-- >>> runWaitChan test7
 -- Debugging [l1]: 1
 -- Debugging [l2]: 1
 -- Debugging [r1]: 1

@@ -3,7 +3,7 @@
 set -e
 
 dir=$(mktemp -d docs/dist-docs.XXXXXX)
-trap 'rm -r "$dir"' EXIT
+# trap 'rm -r "$dir"' EXIT
 
 cabal sdist
 cabal haddock --builddir="$dir" --haddock-for-hackage --enable-doc

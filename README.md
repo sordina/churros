@@ -27,6 +27,16 @@ main = do
    wait =<< run @Chan $ sourceIO (\cb -> cb 1 >> print "Doing whatever!" >> cb 5) >>> filterC (> 3) >>> sinkIO print
 ```
 
+## Testing
+
+Cabal test-suite:
+
+> cabal test
+
+Doctests:
+
+> cabal exec -- doctest -isrc test/Churro/Test/Examples.hs
+
 ## TODO
 
 * [x] Recovery/Retry capability
@@ -34,8 +44,8 @@ main = do
 * [x] Generic Chan functions, then specific newtype
 * [x] Stop using list functions
 * [x] Different transport options, buffered, etc.
-* [ ] Get Doctests working
-* [ ] Write doctests for functionality
+* [x] Write doctests for functionality
+* [ ] Get Doctests working as part of the cabal test-suite
 * [ ] Get haddocks rendering correctly - Including contents
 * [ ] Different transports for sections of the graph
 * [ ] Allow configurable parallelism
