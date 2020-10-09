@@ -12,8 +12,10 @@ category:            Data, Control
 description:         The Churro library takes an opinionated approach to streaming
                      by focusing on IO processes and allowing different transport
                      options.
--- bug-reports:
--- copyright:
+
+source-repository head
+  type:     git
+  location: git@github.com:sordina/churros.git
 
 common churros-dependencies
   default-language: Haskell2010

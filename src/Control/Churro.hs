@@ -13,11 +13,11 @@
 -- 
 module Control.Churro
 
-    (
+    ( module Control.Churro
 
     -- ** Churro Packages
 
-    module Control.Churro.Types
+    , module Control.Churro.Types
     , module Control.Churro.Prelude
     , module Control.Churro.Transport
 
@@ -39,7 +39,7 @@ module Control.Churro
     , Void()
 
     -- *** Re-exported from GHC.Natural
-    , Natural(..)
+    , Natural()
     )
 
 where
@@ -52,3 +52,6 @@ import Data.Void
 import GHC.Natural
 import Control.Arrow
 import Control.Category
+
+million :: Fractional p => p
+million = 1e6
