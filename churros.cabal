@@ -1,4 +1,4 @@
-cabal-version:       >=1.10
+cabal-version:       2.2
 name:                churros
 version:             0.1.0.0
 license-file:        LICENSE
@@ -26,10 +26,6 @@ common churros-dependencies
 library churros-lib
   import: churros-dependencies
   hs-source-dirs:   src
-  build-depends:
-    base,
-    async,
-    time
   exposed-modules:
     Control.Churro,
     Control.Churro.Types,
@@ -38,16 +34,10 @@ library churros-lib
     Control.Churro.Transport.Chan
 
 test-suite churros-test
-  import:            churros-dependencies, churros-lib
+  import:            churros-dependencies
   type:              exitcode-stdio-1.0
   hs-source-dirs:    src,test
   main-is:           Churro/Test/Main.hs
-  build-depends:
-    base,
-    async,
-    time,
-    random,
-    containers
   other-modules:
     Control.Churro,
     Control.Churro.Prelude,

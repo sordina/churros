@@ -81,6 +81,14 @@ takeC n = buildChurro \i o -> do
     replicateM_ (fromIntegral n) (yank i >>= yeet o)
     yeet o Nothing
 
+-- | Filter items according to a predicate.
+--
+-- >>> runWaitChan $ sourceList [1..5] >>> filterC (> 3) >>> sinkPrint
+-- 4
+-- 5
+filterC :: Transport t => (a -> Bool) -> Churro t a a
+filterC p = mapN (filter p . pure)
+
 mapN :: Transport t => (a -> [b]) -> Churro t a b
 mapN f = processN (return . f)
 
