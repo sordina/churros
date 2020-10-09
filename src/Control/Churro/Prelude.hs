@@ -2,23 +2,25 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE BlockArguments #-}
 
--- | Common transport-agnostic functions for using Churro
+-- | Common transport-agnostic functions for using Churro.
 -- 
 module Control.Churro.Prelude where
 
 import Control.Churro.Types
 
 import Prelude hiding (id, (.))
-import Control.Arrow
-import Control.Concurrent
-import Control.Category
-import Control.Concurrent.Async (wait, Async)
-import Data.Void
-import Data.Foldable (for_)
-import Control.Exception (Exception, SomeException, try)
-import GHC.Natural (Natural)
-import Control.Monad (replicateM_, when)
-import Data.Time (NominalDiffTime)
+
+import           Control.Arrow            (arr)
+import           Control.Category         (id, (.), (>>>))
+import           Control.Concurrent       (threadDelay)
+import           Control.Concurrent.Async (Async, wait)
+import           Control.Exception        (Exception, SomeException, try)
+import           Control.Monad            (replicateM_, when)
+import           Data.Foldable            (for_)
+import           Data.Time                (NominalDiffTime)
+import           Data.Void                (Void)
+import           GHC.Natural              (Natural)
+
 
 -- $setup
 -- 
