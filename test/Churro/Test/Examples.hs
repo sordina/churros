@@ -75,7 +75,7 @@ test4 :: Transport t => Churro t Void Void
 test4 = sourceList [1 :: Int] >>> (process print &&& process print) >>> sinkPrint
 
 test5 :: Transport t => Churro t Void Void
-test5 = sourceList [1 :: Int ..10] >>> arr (0 :: Natural,) >>> processRetry' @SomeException 20 flakeyThing >>> sinkPrint
+test5 = sourceList [1 :: Int ..10] >>> arr (0 :: Natural,) >>> processRetry'' @SomeException 20 flakeyThing >>> sinkPrint
     where
     flakeyThing x = do
         r <- randomRIO (1::Int,10)

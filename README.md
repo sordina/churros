@@ -41,7 +41,10 @@ Cabal test-suite including doctests:
 * [x] Stop using list functions
 * [x] Different transport options, buffered, etc.
 * [x] Write doctests for functionality
-* [ ] Get Doctests working as part of the cabal test-suite
+* [x] Get Doctests working as part of the cabal test-suite
+* [ ] Create profunctor instance
+* [ ] Create contravariant functor instance
+* [ ] Allow returning of results from run functions
 * [ ] Get haddocks rendering correctly - Including contents
 * [ ] Different transports for sections of the graph
 * [ ] Allow configurable parallelism

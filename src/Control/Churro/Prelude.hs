@@ -22,7 +22,10 @@ import Data.Time (NominalDiffTime)
 
 -- $setup
 -- 
+-- The examples in this module require the following imports:
+-- 
 -- >>> import Control.Churro.Transport
+-- >>> import Data.Time.Clock
 -- 
 
 -- * Runners
@@ -185,17 +188,39 @@ dropC n = buildChurro \i o -> do
 filterC :: Transport t => (a -> Bool) -> Churro t a a
 filterC p = mapN (filter p . pure)
 
+-- | Run a pure function over items, producing multiple outputs.
+-- 
+-- >>> runWaitChan $ pure 9 >>> mapN (\x -> [x,x*10]) >>> sinkPrint
+-- 9
+-- 90
 mapN :: Transport t => (a -> [b]) -> Churro t a b
 mapN f = processN (return . f)
 
+-- | Delay items from being sent downstream.
+-- 
+--   Note: NominalDiffTime's Num instance interprets literals as seconds.
+-- 
+-- >>> let sinkTimeCheck = process (const getCurrentTime) >>> withPrevious >>> arr (\(x,y) -> diffUTCTime y x > 0.01) >>> sinkPrint
+-- 
+-- >>> runWaitChan $ sourceList [1..2] >>> sinkTimeCheck
+-- False
+-- 
+-- >>> runWaitChan $ sourceList [1..2] >>> delay 0.1 >>> sinkTimeCheck
+-- True
 delay :: Transport t => NominalDiffTime -> Churro t a a
 delay = delayMicro . ceiling @Double . fromRational . (*1000000) . toRational
 
+-- | Delay items in microseconds. Works the same way as `delay`.
 delayMicro :: Transport t => Int -> Churro t a a
 delayMicro d = process \x -> do
     threadDelay d
     return x
 
+-- | Passes consecutive pairs of items downstream.
+-- 
+-- >>> runWaitChan $ sourceList [1,2,3] >>> withPrevious >>> sinkPrint
+-- (1,2)
+-- (2,3)
 withPrevious :: Transport t => Churro t a (a,a)
 withPrevious = buildChurro \i o -> do
     prog Nothing i o 
@@ -208,14 +233,32 @@ withPrevious = buildChurro \i o -> do
             (Nothing, Just y') -> prog (Just y') i o
             _                  -> return ()
 
--- | Requeue an item if it fails.
+-- | Requeue an item if it fails. Swallows exceptions and gives up after maxRetries.
+-- 
+--   The item is requeues on the input side of the churro, so if other items have
+--   been passed in they will appear first!
+-- 
+--   Catches all `SomeException`s. If you wish to narrow the execption type, consider
+--   using the processRetry' variant composed with `rights`.
+-- 
 --   Note: There is an edgecase with Chan transport where a queued retry may not execute
 --         if a source completes and finalises before the item is requeued.
+-- 
 processRetry :: Transport t => Natural -> (i -> IO o) -> Churro t i o
-processRetry maxRetries f = arr (0,) >>> processRetry' @SomeException maxRetries f >>> rights
+processRetry maxRetries f = processRetry' @SomeException maxRetries f >>> rights
 
-processRetry' :: (Exception e, Transport t) => Natural -> (a -> IO o) -> Churro t (Natural, a) (Either e o)
-processRetry' maxRetries f =
+-- | Raw version of `processRetry`. -- Polymorphic over exception type and forwards errors.
+--   
+processRetry' :: (Exception e, Transport t) => Natural -> (i -> IO o) -> Churro t i (Either e o)
+processRetry' maxRetries f = arr (0,) >>> processRetry'' maxRetries f
+
+-- | Rawest version of `processRetry`.
+--   Expects the incoming items to contain number of retries.
+-- 
+--   Also polymorphic over exception type. And forwards errors.
+--   
+processRetry'' :: (Exception e, Transport t) => Natural -> (a -> IO o) -> Churro t (Natural, a) (Either e o)
+processRetry'' maxRetries f =
     buildChurro \i o -> do
         yankAll i \(n, y) -> do
             r <- try do f y
