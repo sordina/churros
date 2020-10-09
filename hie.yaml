@@ -1,0 +1,8 @@
+cradle:
+    multi:
+      - path: "./"
+        config:
+          cradle:
+            cabal:
+              - path: "./src"
+                component: "lib:churros-lib"
