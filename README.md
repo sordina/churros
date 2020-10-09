@@ -13,6 +13,8 @@ Advantages over other alternatives:
 * Arrow instance
 * Choice of transport via the `Transport` class
 
+See [Hackage](https://hackage.haskell.org/package/churros-0.1.0.0/candidate) for more info!
+
 ## Examples
 
 See `./test/` directory for more extensive examples.
@@ -32,6 +34,10 @@ main = do
 * [x] Generic Chan functions, then specific newtype
 * [x] Stop using list functions
 * [x] Different transport options, buffered, etc.
+* [ ] Get Doctests working
+* [ ] Write doctests for functionality
+* [ ] Get haddocks rendering correctly - Including contents
 * [ ] Different transports for sections of the graph
 * [ ] Allow configurable parallelism
 * [ ] Early termination if downstream consumer completes
+    - [ ] Ensure that infinite lists work when partially consumed
