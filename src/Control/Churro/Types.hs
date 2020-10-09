@@ -20,21 +20,6 @@ class Transport t where
     yank     :: t a -> IO a
     yeet     :: t a -> a -> IO ()
 
-yeetList :: (Foldable t1, Transport t2) => t2 a -> t1 a -> IO ()
-yeetList t = mapM_ (yeet t)
-
-yankAll :: Transport t => t (Maybe i) -> (i -> IO a) -> IO ()
-yankAll c f = do
-    x <- yank c
-    case x of
-        Nothing -> return ()
-        Just y  -> f y >> yankAll c f
-
-yankAll' :: Transport t => t (Maybe a) -> (Maybe a -> IO b) -> IO b
-yankAll' c f = do
-    yankAll c (f . Just)
-    f Nothing
-
 instance Transport t => Functor (Churro t a) where
     fmap f c = Churro do
         (i,o,a) <- runChurro c
@@ -109,6 +94,21 @@ buildChurro cb = Churro do
     o <- flex
     a <- async do cb i o
     return (i,o,a)
+
+yeetList :: (Foldable t1, Transport t2) => t2 a -> t1 a -> IO ()
+yeetList t = mapM_ (yeet t)
+
+yankAll :: Transport t => t (Maybe i) -> (i -> IO a) -> IO ()
+yankAll c f = do
+    x <- yank c
+    case x of
+        Nothing -> return ()
+        Just y  -> f y >> yankAll c f
+
+yankAll' :: Transport t => t (Maybe a) -> (Maybe a -> IO b) -> IO b
+yankAll' c f = do
+    yankAll c (f . Just)
+    f Nothing
 
 c2c :: Transport t => (a1 -> a2) -> t (Maybe a1) -> t (Maybe a2) -> IO ()
 c2c f i o = yankAll' i (yeet o . fmap f)

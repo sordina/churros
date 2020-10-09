@@ -6,3 +6,5 @@ cradle:
             cabal:
               - path: "./src"
                 component: "lib:churros-lib"
+              - path: "./test"
+                component: "test:churros-test"
