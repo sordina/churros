@@ -29,13 +29,9 @@ main = do
 
 ## Testing
 
-Cabal test-suite:
+Cabal test-suite including doctests:
 
-> cabal test
-
-Doctests:
-
-> cabal exec -- doctest -isrc test/Churro/Test/Examples.hs
+> cabal exec cabal test
 
 ## TODO
 
