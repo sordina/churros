@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE BlockArguments #-}
 
--- | Datatypes and definitions used by Churro library
+-- | Chan Transport Instance.
 
 module Control.Churro.Transport.Chan where
     
@@ -18,5 +18,7 @@ instance Transport Chan where
 
 type ChurroChan = Churro Chan
 
+-- | Convenience function for running a Churro with a Chan Transport
+-- 
 runWaitChan :: ChurroChan Void Void -> IO ()
 runWaitChan = runWait
