@@ -9,9 +9,6 @@
 -- 
 module Churro.Test.Examples where
 
-import Control.Exception
-import Control.Monad
-import System.Random
 import Data.Map (fromList)
 import Data.List
 
