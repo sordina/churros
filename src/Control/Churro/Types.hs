@@ -11,6 +11,12 @@ import Control.Category
 import Control.Concurrent.Async (cancel, wait, Async, async)
 import Data.Void
 
+-- $setup
+-- 
+-- We import the library for testing, although this would be a circular import in the module itself.
+-- 
+-- >>> import Control.Churro
+
 -- ** Data, Classes and Instances
 
 -- | The core datatype for the library.
@@ -39,6 +45,15 @@ class Transport t where
     yeet :: t a -> a -> IO ()  -- ^ Yeet an item onto the Transport
 
 -- | Covariant functor instance for Churro - Maps over the output.
+-- 
+-- >>> let s = sourceList [1,2]
+-- >>> runWaitChan $ s >>> sinkPrint
+-- 1
+-- 2
+-- 
+-- >>> runWaitChan $ fmap succ s >>> sinkPrint
+-- 2
+-- 3
 instance Transport t => Functor (Churro t a) where
     fmap f c = Churro do
         (i,o,a) <- runChurro c
@@ -49,6 +64,14 @@ instance Transport t => Functor (Churro t a) where
         return (i,o',a')
 
 -- | The Category instance allows for the creation of Churro pipelines.
+-- 
+-- All other examples of the form `a >>> b` use this instance.
+-- 
+-- The `id` method creates a passthrough arrow.
+-- There isn't usually a reason to use `id` directly as it has no effect:
+-- 
+-- >>> runWaitChan $ pure 1 >>> id >>> id >>> id >>> sinkPrint
+-- 1
 instance Transport t => Category (Churro t) where
     id    = Churro do async (return ()) >>= \a -> flex >>= \c -> return (c,c,a)
     g . f = Churro do
@@ -92,6 +115,32 @@ instance Transport t => Applicative (Churro t Void) where
 --  The `arr` method allows for the creation of a that maps items with a pure function.
 --  This is equivalent to `fmap f id`.
 -- 
+-- >>> :set -XArrows
+-- >>> :{
+-- let sect  = process $ \x@(_x,_y,z) -> print x >> return z
+--     graph =
+--       proc i -> do
+--         j <- arr succ  -< i
+--         k <- arr show  -< j
+--         l <- arr succ  -< j
+--         m <- arr (> 5) -< j
+--         n <- sect      -< (k,l,m)
+--         o <- arr not   -< n
+--         sinkPrint      -< o
+-- in
+-- runWaitChan $ sourceList [1,5,30] >>> graph
+-- :}
+-- ("2",3,False)
+-- ("6",7,True)
+-- ("31",32,True)
+-- True
+-- False
+-- False
+-- 
+-- The other Arrow methods are also usable:
+-- 
+-- >>> runWaitChan $ pure 1 >>> (arr show &&& arr succ) >>> sinkPrint
+-- ("1",2)
 instance Transport t => Arrow (Churro t) where
     arr = flip fmap id
 

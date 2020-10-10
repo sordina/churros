@@ -235,24 +235,42 @@ withPrevious = buildChurro \i o -> do
             (Nothing, Just y') -> prog (Just y') i o
             _                  -> return ()
 
--- | Requeue an item if it fails. Swallows exceptions and gives up after maxRetries.
+-- | Requeue an item if it fails. Swallows exceptions and gives up after retries.
 -- 
---   The item is requeues on the input side of the churro, so if other items have
---   been passed in they will appear first!
+--  Note: Process will always try once so if retries = 1 then a failing process will execute twice.
 -- 
---   Catches all `SomeException`s. If you wish to narrow the execption type, consider
---   using the processRetry' variant composed with `rights`.
+--  The item is requeues on the input side of the churro, so if other items have
+--  been passed in they will appear first!
 -- 
---   Note: There is an edgecase with Chan transport where a queued retry may not execute
---         if a source completes and finalises before the item is requeued.
+--  Catches all `SomeException`s. If you wish to narrow the execption type, consider
+--  using the processRetry' variant composed with `rights`.
+-- 
+--  Note: There is an edgecase with Chan transport where a queued retry may not execute
+--        if a source completes and finalises before the item is requeued.
+--        A different transport type may allow a modified retry function that requeues differently.
+-- 
+-- >>> :{
+-- let
+--   prog = processRetry 1 flakeyThing
+--   flakeyThing x = do
+--     if x > 1
+--       then print "GT"  >> return x
+--       else print "LTE" >> error ("oops! " <> show x)
+-- in
+--   runWaitChan $ sourceList [1,2] >>> delay 0.1 >>> prog >>> sinkPrint
+-- :}
+-- "LTE"
+-- "LTE"
+-- "GT"
+-- 2
 -- 
 processRetry :: Transport t => Natural -> (i -> IO o) -> Churro t i o
-processRetry maxRetries f = processRetry' @SomeException maxRetries f >>> rights
+processRetry retries f = processRetry' @SomeException retries f >>> rights
 
 -- | Raw version of `processRetry`. -- Polymorphic over exception type and forwards errors.
 --   
 processRetry' :: (Exception e, Transport t) => Natural -> (i -> IO o) -> Churro t i (Either e o)
-processRetry' maxRetries f = arr (0,) >>> processRetry'' maxRetries f
+processRetry' retries f = arr (0,) >>> processRetry'' retries f
 
 -- | Rawest version of `processRetry`.
 --   Expects the incoming items to contain number of retries.
@@ -260,12 +278,12 @@ processRetry' maxRetries f = arr (0,) >>> processRetry'' maxRetries f
 --   Also polymorphic over exception type. And forwards errors.
 --   
 processRetry'' :: (Exception e, Transport t) => Natural -> (a -> IO o) -> Churro t (Natural, a) (Either e o)
-processRetry'' maxRetries f =
+processRetry'' retries f =
     buildChurro \i o -> do
         yankAll i \(n, y) -> do
             r <- try do f y
             yeet o (Just r)
             case r of
                 Right _ -> return ()
-                Left  _ -> when (n >= maxRetries) do yeet i (Just (succ n, y))
+                Left  _ -> when (n < retries) do yeet i (Just (succ n, y))
         yeet o Nothing
