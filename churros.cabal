@@ -7,7 +7,7 @@ maintainer:          lyndon@sordina.net
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
 license:             MIT
-synopsis:            Churros: Channel/Arrow based streaming computation library.
+synopsis:            Channel/Arrow based streaming computation library.
 category:            Data, Control
 description:         The Churro library takes an opinionated approach to streaming
                      by focusing on IO processes and allowing different transport

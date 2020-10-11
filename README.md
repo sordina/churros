@@ -44,9 +44,9 @@ Cabal test-suite including doctests:
 * [x] Get Doctests working as part of the cabal test-suite
 * [ ] Create profunctor instance
 * [ ] Create contravariant functor instance
-* [ ] Allow returning of results from run functions
-* [ ] Get haddocks rendering correctly - Including contents
+* [x] Allow returning of results from run functions
+* [x] Get haddocks rendering correctly - Including contents
 * [ ] Different transports for sections of the graph
 * [ ] Allow configurable parallelism
-* [ ] Early termination if downstream consumer completes
-    - [ ] Ensure that infinite lists work when partially consumed
+* [x] Early termination if downstream consumer completes
+    - [x] Ensure that infinite lists work when partially consumed
