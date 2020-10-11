@@ -47,6 +47,7 @@ test-suite churros-test
   hs-source-dirs:    src,test
   main-is:           Churro/Test/Main.hs
   build-depends:     doctest
+  ghc-options:       -threaded -rtsopts
   other-modules:
     Control.Churro,
     Control.Churro.Types,

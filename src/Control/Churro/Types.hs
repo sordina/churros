@@ -11,6 +11,7 @@ import Control.Arrow
 import Control.Category
 import Control.Concurrent.Async (cancel, wait, Async, async)
 import Data.Void
+import Control.Exception (finally)
 
 -- $setup
 -- 
@@ -60,8 +61,9 @@ instance Transport t => Functor (Churro t i) where
         (i,o,a) <- runChurro c
         o'  <- flex
         a'  <- async do
-            c2c f o o'
-            wait a
+            finally' (cancel a) do
+                c2c f o o'
+                wait a
         return (i,o',a')
 
 -- | The Category instance allows for the creation of Churro pipelines.
@@ -84,9 +86,8 @@ instance Transport t => Category (Churro t) where
         (gi, go, ga) <- runChurro g
         a <- async do c2c id fo gi
         b <- async do
-            wait ga
-            cancel fa
-            wait a
+            finally' (cancel fa >> cancel a >> cancel ga) do
+                wait ga
         return (fi, go, b)
 
 -- | The Applicative instance allows for pairwise composition of Churro pipelines.
@@ -225,3 +226,6 @@ yankAll' c f = do
 -- 
 c2c :: Transport t => (a1 -> a2) -> t (Maybe a1) -> t (Maybe a2) -> IO ()
 c2c f i o = yankAll' i (yeet o . fmap f)
+
+finally' :: IO b -> IO a -> IO a
+finally' = flip finally

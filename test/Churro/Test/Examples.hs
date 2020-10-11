@@ -16,7 +16,11 @@ import Prelude hiding (id, (.))
 
 import Control.Churro
 
--- Tests
+-- $setup
+-- 
+-- >>> import System.Timeout (timeout)
+
+-- ** Tests
 
 -- | Checks that the IO nature of the churros doesn't duplicate operations.
 --   Actions within a pipeline should only occur once no matter how the
@@ -47,3 +51,27 @@ pipeline = sourceList (take 3 maps)
     where
     maps    = map fromList $ zipWith zip updates updates
     updates = map (take 2) (tails [0 :: Int ..])
+
+-- | Consumers terminaiting should kill sources from producing.
+-- 
+-- This seems to sometimes fail in the following scenarios:
+-- 
+-- >>> timeout 1500000 $ runWaitChan $ sourceList [1..5] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- 1
+-- Just ()
+-- 
+-- What should happen is that the Category instance composition of:
+-- 
+--  ...  delay 1 >>> takeC 1  ...
+--  ^^^ PRE ^^^^     ^^^ POST ^^^
+-- 
+-- When POST terminates it should cancel the computation in PRE.
+-- 
+-- The failures may be caused by one of the following:
+-- 
+-- * Nested Async actions don't cascade on cancellation (most likely, try using resource)
+-- * The associativity laws of Category are broken, meaning that cancellation doesn't behave as it should.
+-- * Producer blocks cancellation from being requested
+-- * Chan is blocked preventing indicating termination to consumers
+-- * Infinite source is causing issues (ruled out with this test example)
+-- 
