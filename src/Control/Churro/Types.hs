@@ -24,8 +24,10 @@ import Control.Exception (finally)
 -- ** Data, Classes and Instances
 
 -- | The core datatype for the library.
---   Parameters`t`, `i` and `o` represent the transport,
---   input and output types respectively.
+-- 
+-- Parameters `t`, `i` and `o` represent the transport, input, and output types respectively.
+-- 
+-- The items on transports are wrapped in Maybe to allow signalling of completion of a source.
 -- 
 -- When building a program by composing Churros, the output Transport of one Churro is fed into the input Transports of other Churros.
 -- 
