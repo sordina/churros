@@ -70,9 +70,16 @@ pipeline = sourceList (take 3 maps)
 -- 
 -- Cancells upstream infinite producer with no inbuilt delay:
 -- 
--- >>> timeout 1500000 $ runWaitChan $ sourceList [1..] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- >>> timeout 2500000 $ runWaitChan $ sourceList [1..] >>> delay 1 >>> takeC 1 >>> sinkPrint
 -- 1
 -- Just ()
+-- 
+-- Note that the timeout here has to be sufficient for a thread switch to occor and the
+-- action be cancelled! See what happens if the timeout is only 1.5s:
+-- 
+-- >>> timeout 1500000 $ runWaitChan $ sourceList [1..] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- 1
+-- Nothing
 -- 
 -- What should happen is that the Category instance composition of:
 -- 

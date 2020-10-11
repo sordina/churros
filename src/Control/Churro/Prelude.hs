@@ -17,11 +17,11 @@ import           Control.Concurrent.Async (Async, wait)
 import           Control.Exception        (Exception, SomeException, try)
 import           Control.Monad            (replicateM_, when)
 import           Data.Foldable            (for_)
+import           Data.IORef               (newIORef, readIORef, writeIORef)
+import           Data.Maybe               (isJust)
 import           Data.Time                (NominalDiffTime)
 import           Data.Void                (Void)
 import           GHC.Natural              (Natural)
-import Data.IORef (readIORef, writeIORef, newIORef)
-import Data.Maybe (isJust)
 
 
 -- $setup
@@ -70,7 +70,7 @@ run = run'
 -- | Run any churro, there is no check that this was spawned with a source, or terminated with a sink.
 --   This is unsafe, since the pipeline may not generate or consume in a predictable way.
 --   Use `run` instead unless you are confident you know what you're doing.
-
+-- 
 run' :: Transport t => Churro t i o -> IO (Async ())
 run' c = do
     -- Compose an empty sourceList to ensure termination
@@ -86,7 +86,7 @@ run' c = do
 -- >>> runWaitChan $ sourceSingleton 13 >>> sinkPrint
 -- 13
 --
--- equivalent to `pure` from `Applicative`.
+-- Equivalent to `pure` from `Applicative`. Redefined here in case you're looking for a source!
 -- 
 -- >>> runWaitChan $ pure 23 >>> sinkPrint
 -- 23

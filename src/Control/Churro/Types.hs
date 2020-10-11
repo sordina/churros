@@ -229,5 +229,6 @@ yankAll' c f = do
 c2c :: Transport t => (a1 -> a2) -> t (Maybe a1) -> t (Maybe a2) -> IO ()
 c2c f i o = yankAll' i (yeet o . fmap f)
 
+-- | Flipped `finally`.
 finally' :: IO b -> IO a -> IO a
 finally' = flip finally
