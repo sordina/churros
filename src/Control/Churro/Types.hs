@@ -27,11 +27,16 @@ import Control.Exception (finally)
 -- 
 -- Parameters `t`, `i` and `o` represent the transport, input, and output types respectively.
 -- 
--- The items on transports are wrapped in Maybe to allow signalling of completion of a source.
+-- The items on transports are wrapped in `Maybe` to allow signalling of completion of a source.
 -- 
 -- When building a program by composing Churros, the output Transport of one Churro is fed into the input Transports of other Churros.
 -- 
-data Churro t i o = Churro { runChurro :: IO (t (Maybe i), t (Maybe o), Async ()) }
+-- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined, although use is not required.
+-- 
+data Churro t i o   = Churro { runChurro :: IO (t (Maybe i), t (Maybe o), Async ()) }
+type Source t   o   = Churro t Void o
+type Sink   t i     = Churro t i Void
+type DoubleDipped t = Churro t Void Void
 
 -- | The transport method is abstracted via the Transport class
 -- 

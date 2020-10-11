@@ -106,13 +106,23 @@ sourceList = sourceIO . for_
 -- >>> runWaitChan $ sourceIO (\cb -> cb 4 >> cb 2) >>> sinkPrint
 -- 4
 -- 2
-sourceIO :: Transport t => ((o -> IO ()) -> IO a2) -> Churro t Void o
+sourceIO :: Transport t => ((o -> IO ()) -> IO ()) -> Churro t Void o
 sourceIO cb =
     buildChurro \_i o -> do
         cb (yeet o . Just)
         yeet o Nothing
 
 -- ** Sinks
+
+-- | Consume all items with no additional effects.
+-- 
+-- TODO: Decide if we should use some kind of `nf` evaluation here to force items.
+-- 
+-- >>> runWaitChan $ pure 1 >>> process print >>> sink
+-- 1
+-- 
+sink :: Transport t => Churro t b Void
+sink = sinkIO (const (return ()))
 
 -- | Consume a churro with an IO process.
 -- 
@@ -128,6 +138,7 @@ sinkIO cb = buildChurro \i _o -> yankAll i cb
 -- "hi"
 sinkPrint :: (Transport t, Show a) => Churro t a Void
 sinkPrint = sinkIO print
+    
 
 -- ** Churros
 
