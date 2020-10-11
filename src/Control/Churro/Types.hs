@@ -86,8 +86,10 @@ instance Transport t => Category (Churro t) where
         (gi, go, ga) <- runChurro g
         a <- async do c2c id fo gi
         b <- async do
-            finally' (cancel fa >> cancel a >> cancel ga) do
+            finally' (cancel a >> cancel fa >> cancel ga) do
                 wait ga
+                cancel fa
+                cancel a
         return (fi, go, b)
 
 -- | The Applicative instance allows for pairwise composition of Churro pipelines.

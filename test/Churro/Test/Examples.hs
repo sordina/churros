@@ -18,7 +18,9 @@ import Control.Churro
 
 -- $setup
 -- 
--- >>> import System.Timeout (timeout)
+-- >>> import System.Timeout     (timeout)
+-- >>> import Control.Monad      (forever)
+-- >>> import Control.Concurrent (threadDelay)
 
 -- ** Tests
 
@@ -54,9 +56,21 @@ pipeline = sourceList (take 3 maps)
 
 -- | Consumers terminaiting should kill sources from producing.
 -- 
--- This seems to sometimes fail in the following scenarios:
+-- This can fail in the following scenarios if cancellation isn't implemented correctly:
 -- 
 -- >>> timeout 1500000 $ runWaitChan $ sourceList [1..5] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- 1
+-- Just ()
+-- 
+-- Cancells infinite producer with inbuilt delays:
+-- 
+-- >>> timeout 1500000 $ runWaitChan $ sourceIO (\cb -> forever (cb 1 >> threadDelay 100000)) >>> takeC 1 >>> sinkPrint
+-- 1
+-- Just ()
+-- 
+-- Cancells upstream infinite producer with no inbuilt delay:
+-- 
+-- >>> timeout 1500000 $ runWaitChan $ sourceList [1..] >>> delay 1 >>> takeC 1 >>> sinkPrint
 -- 1
 -- Just ()
 -- 
@@ -67,11 +81,13 @@ pipeline = sourceList (take 3 maps)
 -- 
 -- When POST terminates it should cancel the computation in PRE.
 -- 
--- The failures may be caused by one of the following:
+-- Failures may be caused by one of the following:
 -- 
--- * Nested Async actions don't cascade on cancellation (most likely, try using resource)
+-- * Nested Async actions don't cascade on cancellation (incorrect finally clauses)
 -- * The associativity laws of Category are broken, meaning that cancellation doesn't behave as it should.
 -- * Producer blocks cancellation from being requested
 -- * Chan is blocked preventing indicating termination to consumers
 -- * Infinite source is causing issues (ruled out with this test example)
 -- 
+-- This is currently working, but tests here should check that the implementation
+-- isn't broken.

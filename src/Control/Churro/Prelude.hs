@@ -21,6 +21,7 @@ import           Data.Time                (NominalDiffTime)
 import           Data.Void                (Void)
 import           GHC.Natural              (Natural)
 import Data.IORef (readIORef, writeIORef, newIORef)
+import Data.Maybe (isJust)
 
 
 -- $setup
@@ -191,10 +192,19 @@ rights = mapN (either (const []) pure)
 -- >>> runWaitChan $ sourceList [1..100] >>> takeC 2 >>> sinkPrint
 -- 1
 -- 2
+-- 
+-- This implementation explicitly stops propagating when the Churro completes,
+-- although this could be handled by downstream consumer composition terminating
+-- the producer and just using replicateM.
 takeC :: (Transport t, Integral n) => n -> Churro t a a
-takeC n = buildChurro \i o -> do
-    replicateM_ (fromIntegral n) (yank i >>= yeet o)
-    yeet o Nothing
+takeC n = buildChurro \i o -> go n i o
+    where
+    go t i o
+        | t <= 0 = yeet o Nothing
+        | otherwise = do
+            x <- yank i
+            yeet o x
+            when (isJust x) do go (pred t) i o
 
 -- | Drop the first n items.
 -- 
