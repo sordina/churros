@@ -18,7 +18,12 @@ instance Transport Chan where
 
 type ChurroChan = Churro Chan
 
--- | Convenience function for running a Churro with a Chan Transport
+-- | Convenience function for running a Churro with a Chan Transport.
 -- 
 runWaitChan :: ChurroChan Void Void -> IO ()
 runWaitChan = runWait
+
+-- | Convenience function for running a Churro into a List with a Chan Transport.
+-- 
+runWaitListChan :: ChurroChan Void o -> IO [o]
+runWaitListChan = runWaitList

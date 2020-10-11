@@ -20,6 +20,7 @@ import           Data.Foldable            (for_)
 import           Data.Time                (NominalDiffTime)
 import           Data.Void                (Void)
 import           GHC.Natural              (Natural)
+import Data.IORef (readIORef, writeIORef, newIORef)
 
 
 -- $setup
@@ -33,12 +34,35 @@ import           GHC.Natural              (Natural)
 -- * Runners
 
 -- | Automatically wait for a churro to complete.
-
+-- 
 runWait :: Transport t => Churro t Void Void -> IO ()
 runWait x = wait =<< run x
 
--- | Run a sourced and sinked (double-dipped) churro and return an async action representing the in-flight processes.
+-- | Read the output of a Churro into a list.
+-- 
+-- Warning: This will block until the Churro terminates.
+--          Accumulating items in memory.
+--          Only use when you expect a finite amount of output.
+--          Otherwise consider composing with a Sink and using `runWait`.
+-- 
+-- >>> runWaitListChan $ sourceList [0..4] >>> arr succ
+-- [1,2,3,4,5]
+-- 
+runWaitList :: Transport t => Churro t Void o -> IO [o]
+runWaitList x = do
+    t <- newIORef []
 
+    let
+        c = buildChurro \i o -> do
+            l <- yankList i
+            writeIORef t l
+
+    runWait $ x >>> c
+
+    readIORef t
+
+-- | Run a sourced and sinked (double-dipped) churro and return an async action representing the in-flight processes.
+-- 
 run :: Transport t => Churro t Void Void -> IO (Async ())
 run = run'
 

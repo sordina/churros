@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE BlockArguments #-}
 
@@ -54,7 +55,7 @@ class Transport t where
 -- >>> runWaitChan $ fmap succ s >>> sinkPrint
 -- 2
 -- 3
-instance Transport t => Functor (Churro t a) where
+instance Transport t => Functor (Churro t i) where
     fmap f c = Churro do
         (i,o,a) <- runChurro c
         o'  <- flex
@@ -73,7 +74,11 @@ instance Transport t => Functor (Churro t a) where
 -- >>> runWaitChan $ pure 1 >>> id >>> id >>> id >>> sinkPrint
 -- 1
 instance Transport t => Category (Churro t) where
-    id    = Churro do async (return ()) >>= \a -> flex >>= \c -> return (c,c,a)
+    id = Churro do
+        a <- async (return ())
+        c <- flex
+        return (c,c,a)
+
     g . f = Churro do
         (fi, fo, fa) <- runChurro f
         (gi, go, ga) <- runChurro g
@@ -184,6 +189,17 @@ buildChurro cb = Churro do
 -- 
 yeetList :: (Foldable t1, Transport t2) => t2 a -> t1 a -> IO ()
 yeetList t = mapM_ (yeet t)
+
+-- | Yank all items from a Raw transport into a list.
+-- 
+--   Won't terminate until the transport has been consumed.
+-- 
+yankList :: Transport t => t (Maybe a) -> IO [a]
+yankList t = do
+    x <- yank t
+    case x of 
+        Nothing -> return []
+        Just y  -> (y :) <$> yankList t
 
 -- | Yank each item from a transport into a callback.
 -- 
