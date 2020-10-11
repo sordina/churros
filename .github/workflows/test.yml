@@ -1,0 +1,25 @@
+name: test churros
+on: push
+jobs:
+  build-hs:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-18.04
+        ghc:
+          - version: "8.10.2"
+            action: "::add-path::/opt/ghc/8.10.2/bin"
+        cabal:
+          - version: "3.2.0.0"
+            action: "::add-path::/opt/cabal/3.2/bin"
+
+    runs-on: ${{ matrix.os }} 
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1.1
+        with:
+          ghc-version: ${{matrix.ghc.version}}
+          cabal-version: ${{matrix.cabal.version}}
+
+      - run: cabal exec cabal test

@@ -117,6 +117,7 @@ instance Transport t => Applicative (Churro t Void) where
                     (Just f', Just g') -> (yeet o $ Just (f' g')) >> prog
                     _                  -> return ()
 
+        -- TODO: Should we cancel asyncs here in finally block?
         prog
         yeet o Nothing
         wait fa
