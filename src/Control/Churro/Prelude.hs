@@ -40,7 +40,7 @@ runWait x = wait =<< run x
 
 -- | Read the output of a Churro into a list.
 -- 
--- Warning: This will block until the Churro terminates.
+-- Warning: This will block until the Churro terminates,
 --          Accumulating items in memory.
 --          Only use when you expect a finite amount of output.
 --          Otherwise consider composing with a Sink and using `runWait`.
@@ -53,7 +53,7 @@ runWaitList x = do
     t <- newIORef []
 
     let
-        c = buildChurro \i o -> do
+        c = buildChurro \i _o -> do
             l <- yankList i
             writeIORef t l
 
