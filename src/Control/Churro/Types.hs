@@ -3,6 +3,8 @@
 {-# LANGUAGE BlockArguments #-}
 
 -- | Datatypes and definitions used by Churro library.
+-- 
+-- Expand instances for additional documentation!
 
 module Control.Churro.Types where
 
