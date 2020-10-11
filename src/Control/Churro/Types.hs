@@ -139,7 +139,8 @@ instance Transport t => Applicative (Churro t Void) where
 --         m <- arr (> 5) -< j
 --         n <- sect      -< (k,l,m)
 --         o <- arr not   -< n
---         sinkPrint      -< o
+--         p <- delay 0.1 -< o
+--         sinkPrint      -< p
 -- in
 -- runWaitChan $ sourceList [1,5,30] >>> graph
 -- :}
