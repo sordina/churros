@@ -186,6 +186,12 @@ instance Transport t => Arrow (Churro t) where
 
         return (i',o',a')
 
+-- instance Transport t => ArrowChoice (Churro t) where
+--     left c = undefined
+
+-- instance Transport t => ArrowLoop (Churro t) where
+--     loop c = undefined
+
 -- ** Helpers
 
 -- | A helper to facilitate constructing a Churro that makes new input and output transports available for manipulation.

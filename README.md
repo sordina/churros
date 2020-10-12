@@ -60,6 +60,8 @@ Or for itterative development:
 * [ ] Bundle in/out channels in the Transport class to allow Unagi to implement it
 * [ ] Create profunctor instance
 * [ ] Create contravariant functor instance
+* [ ] Create ArrowChoice instance
+* [ ] Create ArrowLoop instance
 * [x] Allow returning of results from run functions
 * [x] Get haddocks rendering correctly - Including contents
 * [ ] Different transports for sections of the graph
