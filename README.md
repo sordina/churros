@@ -6,12 +6,22 @@ Simple alternative to Conduit, Pipes, Streams, Machines, etc.
 
 Use-case is CSP like scenarios where you need a graph of actors.
 
+Developed from a history of attempting to use co-routines libraries for setting up complicated asynchronous processes
+such as collections of MIDI instruments, etc, but being frustrated by not easily being able to conditionally
+consume and emit events.
+
 Advantages over other alternatives:
 
 * Focus on IO processes
 * Dynamic choice of consumption/production
 * Arrow instance
 * Choice of transport via the `Transport` class
+
+Disadvantages:
+
+* No pure interface!
+* No expressive return type encoded in the Churro datatype (could this be addressed?)
+* Limited ability to perform lock-step computation (although this is by design)
 
 See [Hackage](https://hackage.haskell.org/package/churros-0.1.0.0/candidate) for more info!
 
