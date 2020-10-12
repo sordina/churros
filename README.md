@@ -33,6 +33,10 @@ Cabal test-suite including doctests:
 
 > cabal exec cabal test
 
+Or for itterative development:
+
+> find {src,test} | entr -- cabal exec -- doctest -isrc -itest test/Churro/Test/Examples.hs
+
 ## TODO
 
 * [x] Recovery/Retry capability

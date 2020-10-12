@@ -1,9 +1,11 @@
 cabal-version:       2.2
 name:                churros
-version:             0.1.0.1
+version:             0.1.0.2
 license-file:        LICENSE
 author:              Lyndon Maydwell
 maintainer:          lyndon@sordina.net
+homepage:            http://github.com/sordina/churros
+bug-reports:         http://github.com/sordina/churros/issues
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
 license:             MIT
@@ -17,10 +19,6 @@ source-repository head
   type:     git
   location: git@github.com:sordina/churros.git
 
--- custom-setup
---    setup-depends:
---      base, Cabal, cabal-doctest
-
 common churros-dependencies
   default-language: Haskell2010
   build-depends:
@@ -31,9 +29,9 @@ common churros-dependencies
     containers,
     random
 
-library churros-lib
+library
   import: churros-dependencies
-  hs-source-dirs:   src
+  hs-source-dirs: src
   exposed-modules:
     Control.Churro,
     Control.Churro.Types,
