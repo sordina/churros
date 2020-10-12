@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE BlockArguments #-}
@@ -13,7 +14,7 @@ import Prelude hiding (id, (.))
 import           Control.Arrow            (arr)
 import           Control.Category         (id, (.), (>>>))
 import           Control.Concurrent       (threadDelay)
-import           Control.Concurrent.Async (Async, wait)
+import           Control.Concurrent.Async (waitAny, Async, wait)
 import           Control.Exception        (Exception, SomeException, try)
 import           Control.Monad            (replicateM_, when)
 import           Data.Foldable            (for_)
@@ -111,6 +112,19 @@ sourceIO cb =
     buildChurro \_i o -> do
         cb (yeet o . Just)
         yeet o Nothing
+
+-- | Combine a list of sources into a single source.
+-- 
+-- Sends individual items downstream without attempting to combine them.
+-- 
+-- >>> runWaitChan $ sources [pure 1, pure 1] >>> sinkPrint
+-- 1
+-- 1
+sources :: Transport t => [Source t o] -> Source t o
+sources ss = sourceIO \cb -> do
+    asyncs <- mapM (\s -> run $ s >>> sinkIO cb) ss
+    (a, _) <- waitAny asyncs
+    wait a
 
 -- ** Sinks
 

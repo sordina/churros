@@ -8,7 +8,8 @@ Use-case is CSP like scenarios where you need a graph of actors.
 
 Developed from a history of attempting to use co-routines libraries for setting up complicated asynchronous processes
 such as collections of MIDI instruments, etc, but being frustrated by not easily being able to conditionally
-consume and emit events.
+consume and emit events. In these situations I'd fall back on creating a bunch of Chans and piping events manually.
+Churros just formalises that strategy to help you get it right!
 
 Advantages over other alternatives:
 
