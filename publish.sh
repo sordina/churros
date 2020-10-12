@@ -8,6 +8,13 @@ dir=$(mktemp -d docs/dist-docs.XXXXXX)
 VERSION=$(grep '^version:' churros.cabal | sed 's/[^ ]* *//')
 echo "Library VERSION: $VERSION"
 
+echo "Checklist:"
+echo "  [ ] - Update version"
+echo "  [ ] - Update changelog"
+echo "  [ ] - Run build"
+echo "  [ ] - Run tests"
+echo "  [ ] - Test docs locally"
+echo ""
 echo "proceed? "
 read -r
 
