@@ -1,4 +1,10 @@
-# Revision history for churros
+# Revision history for Churros
+
+## 0.1.0.4 -- 2020-10-15
+
+* Transport method `flex` now returns a pair of channels to move towards support for Unagi.
+* Addition of new prelude methods such as `sources`.
+* Adding README.md to Hackage contents page.
 
 ## 0.1.0.3 -- 2020-10-12
 
