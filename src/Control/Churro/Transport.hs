@@ -20,9 +20,9 @@ import Control.Churro.Types
 -- >>> import Control.Concurrent.Chan
 -- >>> :{
 -- do
---   c <- flex :: IO (Chan (Maybe (Maybe Int)))
---   l2c c (map Just [1,2] ++ [Nothing])
---   yankAll' c print
+--   (i,o) <- flex :: IO (TransportChan (Maybe Int))
+--   l2c i (map Just [1,2] ++ [Nothing])
+--   yankAll' o print
 -- :}
 -- Just (Just 1)
 -- Just (Just 2)

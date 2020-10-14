@@ -12,11 +12,14 @@ import Control.Concurrent
 import Data.Void
 
 instance Transport Chan where
-    flex = newChan
     yank = readChan
     yeet = writeChan
+    flex = do 
+        c <- newChan
+        return (c,c)
 
-type ChurroChan = Churro Chan
+type ChurroChan      = Churro Chan
+type TransportChan a = (Chan (Maybe a), Chan (Maybe a))
 
 -- | Convenience function for running a Churro with a Chan Transport.
 -- 

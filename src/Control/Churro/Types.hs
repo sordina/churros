@@ -45,13 +45,18 @@ type DoubleDipped t = Churro t Void Void
 -- * Chan (Included in `Control.Churro.Transport.Chan`)
 -- * TChan
 -- * Seq
+-- * Unagi
 -- * Various buffered options
 -- 
 -- Transports used in conjunction with Churros wrap items in Maybe so that once a source has been depleted it can signal completion with
 -- a Nothing item.
 -- 
+-- The flex method returns two transports, so that channels such as unagi that create an in/outs pair can have a Transport instance.
+-- 
+-- Channels like Chan that have a single channel act as in/out simply reuse the same channel in the pair returned.
+-- 
 class Transport t where
-    flex :: IO (t a)           -- ^ Create a new Transport
+    flex :: IO (t a, t a)      -- ^ Create a new pair of transports.
     yank :: t a -> IO a        -- ^ Yank an item of the Transport
     yeet :: t a -> a -> IO ()  -- ^ Yeet an item onto the Transport
 
@@ -68,10 +73,10 @@ class Transport t where
 instance Transport t => Functor (Churro t i) where
     fmap f c = Churro do
         (i,o,a) <- runChurro c
-        o'  <- flex
-        a'  <- async do
+        (i',o') <- flex
+        a' <- async do
             finally' (cancel a) do
-                c2c f o o'
+                c2c f o i'
                 wait a
         return (i,o',a')
 
@@ -86,9 +91,9 @@ instance Transport t => Functor (Churro t i) where
 -- 1
 instance Transport t => Category (Churro t) where
     id = Churro do
-        a <- async (return ())
-        c <- flex
-        return (c,c,a)
+        (i,o) <- flex
+        a     <- async (return ())
+        return (i,o,a)
 
     g . f = Churro do
         (fi, fo, fa) <- runChurro f
@@ -164,16 +169,16 @@ instance Transport t => Arrow (Churro t) where
     arr = flip fmap id
 
     first c = Churro do
-        (i,o,a) <- runChurro c
-        i'      <- flex
-        o'      <- flex
+        (i,o,a)   <- runChurro c
+        (ai',ao') <- flex
+        (bi',bo') <- flex
 
         let go = do
-                is <- yank i'
+                is <- yank ao'
                 yeet i (fmap fst is)
 
                 os <- yank o
-                yeet o' $ (,) <$> os <*> fmap snd is
+                yeet bi' $ (,) <$> os <*> fmap snd is
 
                 case (is, os) of
                     (Just _, Just _) -> go
@@ -181,16 +186,10 @@ instance Transport t => Arrow (Churro t) where
 
         a' <- async do
             go
-            yeet o' Nothing
+            yeet bi' Nothing
             wait a
 
-        return (i',o',a')
-
--- instance Transport t => ArrowChoice (Churro t) where
---     left c = undefined
-
--- instance Transport t => ArrowLoop (Churro t) where
---     loop c = undefined
+        return (ai',bo',a')
 
 -- ** Helpers
 
@@ -200,10 +199,10 @@ instance Transport t => Arrow (Churro t) where
 -- 
 buildChurro :: Transport t => (t (Maybe i) -> t (Maybe o) -> IO ()) -> Churro t i o
 buildChurro cb = Churro do
-    i <- flex
-    o <- flex
-    a <- async do cb i o
-    return (i,o,a)
+    (ai,ao) <- flex
+    (bi,bo) <- flex
+    a     <- async do cb ao bi
+    return (ai,bo,a)
 
 -- | Yeet all items from a list into a transport.
 -- 
@@ -243,7 +242,7 @@ yankAll' c f = do
 -- 
 -- Raw items are used so `Nothing` should be Yeeted once the transport is depleted.
 -- 
-c2c :: Transport t => (a1 -> a2) -> t (Maybe a1) -> t (Maybe a2) -> IO ()
+c2c :: Transport t => (i -> o) -> t (Maybe i) -> t (Maybe o) -> IO ()
 c2c f i o = yankAll' i (yeet o . fmap f)
 
 -- | Flipped `finally`.
