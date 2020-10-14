@@ -7,14 +7,16 @@ maintainer:          lyndon@sordina.net
 homepage:            http://github.com/sordina/churros
 bug-reports:         http://github.com/sordina/churros/issues
 build-type:          Simple
-extra-source-files:  CHANGELOG.md
 license:             MIT
 synopsis:            Channel/Arrow based streaming computation library.
 category:            Data, Control
 description:         The Churro library takes an opinionated approach to streaming
                      by focusing on IO processes and allowing different transport
                      options.
-
+extra-doc-files:  
+  CHANGELOG.md
+  README.md
+  
 source-repository head
   type:     git
   location: git@github.com:sordina/churros.git
