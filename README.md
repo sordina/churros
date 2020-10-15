@@ -13,13 +13,13 @@ Use-case is CSP like scenarios where you need a graph of actors.
 Signup Example:
 
 ```
-New-Users {-> ID} ---> Validate {ID -> (ID,Email} ?--> Deploy {Email -> Port} --?-> Log {Port|Receipt ->}
------------------      -------------------------- |    ----------------------   |   ---------------------
-    Subscribe                 REST Request        |          Run Server         |        Write File
-                                                  |                             |
-                                                  +--> Warn {Email -> Receipt} -+
-                                                       -----------------------
-                                                             Send Email
+New-Users -->  Validate -------?----->  Deploy  -----?-----> Log
+Subscribe    REST Request      |      Run Server     |    Write File
+ {-> ID}   {ID -> (ID,Email}   |    {Email -> Port}  | {Port|Receipt ->}
+                               |                     |
+                               +------> Warn --------+
+                                     Send Email
+                                 {Email -> Receipt}
 ```
 
 Developed from a history of attempting to use co-routines libraries for setting up complicated asynchronous processes
