@@ -106,7 +106,7 @@ sourceList = sourceIO . for_
 -- >>> runWaitChan $ sourceIO (\cb -> cb 4 >> cb 2) >>> sinkPrint
 -- 4
 -- 2
-sourceIO :: Transport t => ((o -> IO ()) -> IO a) -> Churro a t Void o
+sourceIO :: Transport t => ((o -> IO a) -> IO a) -> Churro a t Void o
 sourceIO cb =
     buildChurro \_i o -> do
         r <- cb (yeet o . Just)
