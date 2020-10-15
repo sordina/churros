@@ -9,6 +9,10 @@ import Test.DocTest
 -- TODO: Find out how to use a different test manager to allow these to be run independently
 main :: IO ()
 main = do
-    doctest ["-isrc", "test/Churro/Test/Examples.hs"]
-    -- Ex.main
+    doctest
+        [ "-isrc"
+        , "-itest"
+        , "test/Churro/Test/Examples.hs"
+        , "src/Control/Churro/Transport/Unagi/Bounded.hs"
+        ]
 

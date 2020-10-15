@@ -16,7 +16,7 @@ import Control.Churro.Prelude
 import Control.Concurrent.Chan.Unagi.Bounded
 import Data.Void
 import Data.Data (Proxy(..))
-import GHC.TypeLits (KnownNat, Nat, natVal)
+import GHC.TypeLits (KnownNat, natVal)
 
 -- $setup
 -- 
@@ -27,7 +27,7 @@ import GHC.TypeLits (KnownNat, Nat, natVal)
 
 data UnagiBounded n a
 
-instance KnownNat n => Transport (UnagiBounded (n :: Nat)) where
+instance KnownNat n => Transport (UnagiBounded n) where
     data In  (UnagiBounded n) a = ChanIn  (InChan  a)
     data Out (UnagiBounded n) a = ChanOut (OutChan a)
     yank (ChanOut c) = readChan  c
