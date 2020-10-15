@@ -1,6 +1,13 @@
 # Revision history for Churros
 
-## 0.1.0.4 -- 2020-10-15
+## 0.1.2.0 -- 2020-10-15
+
+* Added type families to transport class to allow for different in/out types
+* Added support for unagi-chan
+* Added support for bounded unagi-chan
+* Updating documentation
+
+## 0.1.1.0 -- 2020-10-15
 
 * Transport method `flex` now returns a pair of channels to move towards support for Unagi.
 * Addition of new prelude methods such as `sources`.

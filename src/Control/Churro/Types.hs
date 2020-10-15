@@ -30,9 +30,14 @@ import Control.Exception (finally)
 -- 
 -- The items on transports are wrapped in `Maybe` to allow signalling of completion of a source.
 -- 
--- When building a program by composing Churros, the output Transport of one Churro is fed into the input Transports of other Churros.
+-- When building a program by composing Churros, the output Transport of one
+-- Churro is fed into the input Transports of other Churros.
 -- 
--- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined, although use is not required.
+-- Type families are used to allow the in/out channels to have different types
+-- and prevent accidentally reading/writing from the wrong transport.
+-- 
+-- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined,
+-- although use is not required.
 -- 
 data Churro t i o   = Churro { runChurro :: IO (In t (Maybe i), Out t (Maybe o), Async ()) }
 type Source t   o   = Churro t Void o
@@ -49,12 +54,14 @@ type DoubleDipped t = Churro t Void Void
 -- * Unagi
 -- * Various buffered options
 -- 
--- Transports used in conjunction with Churros wrap items in Maybe so that once a source has been depleted it can signal completion with
--- a Nothing item.
+-- Transports used in conjunction with Churros wrap items in Maybe so that once
+-- a source has been depleted it can signal completion with a Nothing item.
 -- 
--- The flex method returns two transports, so that channels such as unagi that create an in/outs pair can have a Transport instance.
+-- The flex method returns two transports, so that channels such as unagi that
+-- create an in/outs pair can have a Transport instance.
 -- 
--- Channels like Chan that have a single channel act as in/out simply reuse the same channel in the pair returned.
+-- Channels like Chan that have a single channel act as in/out simply reuse the
+-- same channel in the pair returned.
 -- 
 class Transport (t :: * -> *) where
     data In  t :: * -> *
