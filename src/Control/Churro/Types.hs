@@ -39,10 +39,10 @@ import Control.Exception (finally)
 -- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined,
 -- although use is not required.
 -- 
-data Churro t i o   = Churro { runChurro :: IO (In t (Maybe i), Out t (Maybe o), Async ()) }
-type Source t   o   = Churro t Void o
-type Sink   t i     = Churro t i Void
-type DoubleDipped t = Churro t Void Void
+data Churro a t i o   = Churro { runChurro :: IO (In t (Maybe i), Out t (Maybe o), Async a) }
+type Source a t   o   = Churro a t Void o
+type Sink   a t i     = Churro a t i Void
+type DoubleDipped a t = Churro a t Void Void
 
 -- | The transport method is abstracted via the Transport class
 -- 
@@ -80,7 +80,7 @@ class Transport (t :: * -> *) where
 -- >>> runWaitChan $ fmap succ s >>> sinkPrint
 -- 2
 -- 3
-instance Transport t => Functor (Churro t i) where
+instance Transport t => Functor (Churro a t i) where
     fmap f c = Churro do
         (i,o,a) <- runChurro c
         (i',o') <- flex
@@ -99,7 +99,7 @@ instance Transport t => Functor (Churro t i) where
 -- 
 -- >>> runWaitChan $ pure 1 >>> id >>> id >>> id >>> sinkPrint
 -- 1
-instance Transport t => Category (Churro t) where
+instance Transport t => Category (Churro () t) where
     id = Churro do
         (i,o) <- flex
         a     <- async (return ())
@@ -121,7 +121,7 @@ instance Transport t => Category (Churro t) where
 -- 
 --  The `pure` method allows for the creation of a Churro yielding a single item.
 -- 
-instance Transport t => Applicative (Churro t Void) where
+instance Transport t => Applicative (Churro () t Void) where
     pure x = buildChurro \_i o -> yeet o (Just x) >> yeet o Nothing
 
     f <*> g = buildChurro \_i o -> do
@@ -175,7 +175,7 @@ instance Transport t => Applicative (Churro t Void) where
 -- 
 -- >>> runWaitChan $ pure 1 >>> (arr show &&& arr succ) >>> sinkPrint
 -- ("1",2)
-instance Transport t => Arrow (Churro t) where
+instance Transport t => Arrow (Churro () t) where
     arr = flip fmap id
 
     first c = Churro do
@@ -207,7 +207,7 @@ instance Transport t => Arrow (Churro t) where
 -- 
 -- The manipulations performed are carried out in the async action associated with the Churro
 -- 
-buildChurro :: Transport t => (Out t (Maybe i) -> In t (Maybe o) -> IO ()) -> Churro t i o
+buildChurro :: Transport t => (Out t (Maybe i) -> In t (Maybe o) -> IO a) -> Churro a t i o
 buildChurro cb = Churro do
     (ai,ao) <- flex
     (bi,bo) <- flex
@@ -218,7 +218,7 @@ buildChurro cb = Churro do
 -- 
 -- Used by "retry" style functions.
 -- 
-buildChurro' :: Transport t => (In t (Maybe i) -> Out t (Maybe i) -> In t (Maybe o) -> IO ()) -> Churro t i o
+buildChurro' :: Transport t => (In t (Maybe i) -> Out t (Maybe i) -> In t (Maybe o) -> IO a) -> Churro a t i o
 buildChurro' cb = Churro do
     (ai,ao) <- flex
     (bi,bo) <- flex

@@ -37,7 +37,7 @@ import           GHC.Natural              (Natural)
 
 -- | Automatically wait for a churro to complete.
 -- 
-runWait :: Transport t => Churro t Void Void -> IO ()
+runWait :: Transport t => Churro a t Void Void -> IO a
 runWait x = wait =<< run x
 
 -- | Read the output of a Churro into a list.
@@ -50,7 +50,7 @@ runWait x = wait =<< run x
 -- >>> runWaitListChan $ sourceList [0..4] >>> arr succ
 -- [1,2,3,4,5]
 -- 
-runWaitList :: Transport t => Churro t Void o -> IO [o]
+runWaitList :: Transport t => Churro () t Void o -> IO [o]
 runWaitList x = do
     t <- newIORef []
 
@@ -65,17 +65,16 @@ runWaitList x = do
 
 -- | Run a sourced and sinked (double-dipped) churro and return an async action representing the in-flight processes.
 -- 
-run :: Transport t => Churro t Void Void -> IO (Async ())
+run :: Transport t => Churro a t Void Void -> IO (Async a)
 run = run'
 
 -- | Run any churro, there is no check that this was spawned with a source, or terminated with a sink.
 --   This is unsafe, since the pipeline may not generate or consume in a predictable way.
 --   Use `run` instead unless you are confident you know what you're doing.
 -- 
-run' :: Transport t => Churro t i o -> IO (Async ())
+run' :: Transport t => Churro a t i o -> IO (Async a)
 run' c = do
-    -- Compose an empty sourceList to ensure termination
-    (_i,_o,a) <- runChurro (sourceList [] >>> c)
+    (_i,_o,a) <- runChurro c
     return a
 
 -- * Library
@@ -91,7 +90,7 @@ run' c = do
 -- 
 -- >>> runWaitChan $ pure 23 >>> sinkPrint
 -- 23
-sourceSingleton :: Transport t => o -> Churro t Void o
+sourceSingleton :: Transport t => o -> Churro () t Void o
 sourceSingleton x = sourceList [x]
 
 -- | Create a source from a list of items, sending each down the churro independently.
@@ -99,7 +98,7 @@ sourceSingleton x = sourceList [x]
 -- >>> runWaitChan $ sourceList [4,2] >>> sinkPrint
 -- 4
 -- 2
-sourceList :: (Transport t, Foldable f) => f o -> Churro t Void o
+sourceList :: (Transport t, Foldable f) => f o -> Churro () t Void o
 sourceList = sourceIO . for_
 
 -- | Create a source from an IO action that is passed a function to yield new items.
@@ -107,11 +106,12 @@ sourceList = sourceIO . for_
 -- >>> runWaitChan $ sourceIO (\cb -> cb 4 >> cb 2) >>> sinkPrint
 -- 4
 -- 2
-sourceIO :: Transport t => ((o -> IO ()) -> IO ()) -> Churro t Void o
+sourceIO :: Transport t => ((o -> IO ()) -> IO a) -> Churro a t Void o
 sourceIO cb =
     buildChurro \_i o -> do
-        cb (yeet o . Just)
+        r <- cb (yeet o . Just)
         yeet o Nothing
+        return r
 
 -- | Combine a list of sources into a single source.
 -- 
@@ -120,11 +120,11 @@ sourceIO cb =
 -- >>> runWaitChan $ sources [pure 1, pure 1] >>> sinkPrint
 -- 1
 -- 1
-sources :: Transport t => [Source t o] -> Source t o
+sources :: Transport t => [Source a t o] -> Source a t o
 sources ss = sourceIO \cb -> do
     asyncs <- mapM (\s -> run $ s >>> sinkIO cb) ss
     (a, _) <- waitAny asyncs
-    wait a
+    return a
 
 -- ** Sinks
 
@@ -135,7 +135,7 @@ sources ss = sourceIO \cb -> do
 -- >>> runWaitChan $ pure 1 >>> process print >>> sink
 -- 1
 -- 
-sink :: Transport t => Churro t b Void
+sink :: Transport t => Churro () t b Void
 sink = sinkIO (const (return ()))
 
 -- | Consume a churro with an IO process.
@@ -143,14 +143,14 @@ sink = sinkIO (const (return ()))
 -- >>> runWaitChan $ pure 1 >>> sinkIO (\x -> print "hello" >> print (succ x))
 -- "hello"
 -- 2
-sinkIO :: Transport t => (o -> IO ()) -> Churro t o Void
+sinkIO :: Transport t => (o -> IO ()) -> Churro () t o Void
 sinkIO cb = buildChurro \i _o -> yankAll i cb
 
 -- | Consume and print each item. Used in many examples, but not much use outside debugging!
 -- 
 -- >>> runWaitChan $ pure "hi" >>> sinkPrint
 -- "hi"
-sinkPrint :: (Transport t, Show a) => Churro t a Void
+sinkPrint :: (Transport t, Show a) => Churro () t a Void
 sinkPrint = sinkIO print
     
 
@@ -162,15 +162,15 @@ sinkPrint = sinkIO print
 -- >>> runWaitChan $ pure "hi" >>> process (\x -> print x >> return (reverse x)) >>> sinkPrint
 -- "hi"
 -- "ih"
-process :: Transport t => (a -> IO b) -> Churro t a b
+process :: Transport t => (a -> IO b) -> Churro a t a b
 process f = processN (fmap pure . f)
 
 -- | Print each item then pass it on.
-processPrint :: (Transport t, Show b) => Churro t b b
+processPrint :: (Transport t, Show b) => Churro a t b b
 processPrint = process \x -> do print x >> return x
 
 -- | Print each item with an additional debugging label.
-processDebug :: (Transport t, Show b) => String -> Churro t b b
+processDebug :: (Transport t, Show b) => String -> Churro a t b b
 processDebug d = process \x -> putStrLn ("Debugging [" <> d <> "]: " <> show x) >> return x
 
 -- | Process each item with an IO action and potentially yield many items as a result.
@@ -180,7 +180,7 @@ processDebug d = process \x -> putStrLn ("Debugging [" <> d <> "]: " <> show x) 
 -- "1"
 -- 1
 -- 2
-processN :: Transport t => (a -> IO [b]) -> Churro t a b
+processN :: Transport t => (a -> IO [b]) -> Churro a t a b
 processN f =
     buildChurro \i o -> do
         yankAll i \x -> do mapM_ (yeet o . Just) =<< f x
@@ -191,7 +191,7 @@ processN f =
 -- >>> runWaitChan $ sourceList [Just 1, Nothing, Just 3] >>> justs >>> sinkPrint
 -- 1
 -- 3
-justs :: Transport t => Churro t (Maybe a) a
+justs :: Transport t => Churro a t (Maybe a) a
 justs = mapN (maybe [] pure)
 
 -- | Extract ls from (Left l)s.
@@ -199,14 +199,14 @@ justs = mapN (maybe [] pure)
 -- >>> runWaitChan $ sourceList [Left 1, Right 2, Left 3] >>> lefts >>> sinkPrint
 -- 1
 -- 3
-lefts :: Transport t => Churro t (Either a b) a
+lefts :: Transport t => Churro a t (Either a b) a
 lefts = mapN (either pure (const []))
 
 -- | Extract rs from (Right r)s.
 -- 
 -- >>> runWaitChan $ sourceList [Left 1, Right 2, Left 3] >>> rights >>> sinkPrint
 -- 2
-rights :: Transport t => Churro t (Either a b) b
+rights :: Transport t => Churro a t (Either a b) b
 rights = mapN (either (const []) pure)
 
 -- | Take and yield the first n items.
@@ -221,7 +221,7 @@ rights = mapN (either (const []) pure)
 -- This implementation explicitly stops propagating when the Churro completes,
 -- although this could be handled by downstream consumer composition terminating
 -- the producer and just using replicateM.
-takeC :: (Transport t, Integral n) => n -> Churro t a a
+takeC :: (Transport t, Integral n) => n -> Churro a t a a
 takeC n = buildChurro \i o -> go n i o
     where
     go t i o
@@ -236,7 +236,7 @@ takeC n = buildChurro \i o -> go n i o
 -- >>> runWaitChan $ sourceList [1..4] >>> dropC 2 >>> sinkPrint
 -- 3
 -- 4
-dropC :: (Transport t, Integral n) => n -> Churro t a a
+dropC :: (Transport t, Integral n) => n -> Churro a t a a
 dropC n = buildChurro \i o -> do
     replicateM_ (fromIntegral n) (yank i) -- TODO: Check the async behaviour of this...
     c2c id i o
@@ -246,7 +246,7 @@ dropC n = buildChurro \i o -> do
 -- >>> runWaitChan $ sourceList [1..5] >>> filterC (> 3) >>> sinkPrint
 -- 4
 -- 5
-filterC :: Transport t => (a -> Bool) -> Churro t a a
+filterC :: Transport t => (a -> Bool) -> Churro a t a a
 filterC p = mapN (filter p . pure)
 
 -- | Run a pure function over items, producing multiple outputs.
@@ -254,7 +254,7 @@ filterC p = mapN (filter p . pure)
 -- >>> runWaitChan $ pure 9 >>> mapN (\x -> [x,x*10]) >>> sinkPrint
 -- 9
 -- 90
-mapN :: Transport t => (a -> [b]) -> Churro t a b
+mapN :: Transport t => (a -> [b]) -> Churro a t a b
 mapN f = processN (return . f)
 
 -- | Delay items from being sent downstream.
@@ -268,11 +268,11 @@ mapN f = processN (return . f)
 -- 
 -- >>> runWaitChan $ sourceList [1..2] >>> delay 0.1 >>> sinkTimeCheck
 -- True
-delay :: Transport t => NominalDiffTime -> Churro t a a
+delay :: Transport t => NominalDiffTime -> Churro a t a a
 delay = delayMicro . ceiling @Double . fromRational . (*1000000) . toRational
 
 -- | Delay items in microseconds. Works the same way as `delay`.
-delayMicro :: Transport t => Int -> Churro t a a
+delayMicro :: Transport t => Int -> Churro a t a a
 delayMicro d = process \x -> do
     threadDelay d
     return x
@@ -282,7 +282,7 @@ delayMicro d = process \x -> do
 -- >>> runWaitChan $ sourceList [1,2,3] >>> withPrevious >>> sinkPrint
 -- (1,2)
 -- (2,3)
-withPrevious :: Transport t => Churro t a (a,a)
+withPrevious :: Transport t => Churro a t a (a,a)
 withPrevious = buildChurro \i o -> do
     prog Nothing i o 
     yeet o Nothing
@@ -323,12 +323,12 @@ withPrevious = buildChurro \i o -> do
 -- "GT"
 -- 2
 -- 
-processRetry :: Transport t => Natural -> (i -> IO o) -> Churro t i o
+processRetry :: Transport t => Natural -> (i -> IO o) -> Churro a t i o
 processRetry retries f = processRetry' @SomeException retries f >>> rights
 
 -- | Raw version of `processRetry`. -- Polymorphic over exception type and forwards errors.
 --   
-processRetry' :: (Exception e, Transport t) => Natural -> (i -> IO o) -> Churro t i (Either e o)
+processRetry' :: (Exception e, Transport t) => Natural -> (i -> IO o) -> Churro a t i (Either e o)
 processRetry' retries f = arr (0,) >>> processRetry'' retries f
 
 -- | Rawest version of `processRetry`.
@@ -336,7 +336,7 @@ processRetry' retries f = arr (0,) >>> processRetry'' retries f
 -- 
 --   Also polymorphic over exception type. And forwards errors.
 --   
-processRetry'' :: (Transport t, Exception e, Ord n, Enum n) => n -> (a -> IO b) -> Churro t (n, a) (Either e b)
+processRetry'' :: (Transport t, Exception e, Ord n, Enum n) => n -> (a -> IO b) -> Churro a t (n, a) (Either e b)
 processRetry'' retries f =
     buildChurro' \i' o i -> do
         yankAll o \(n, y) -> do
