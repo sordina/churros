@@ -24,12 +24,12 @@ instance Transport Unagi where
 
 type ChurroUnagi = Churro Unagi
 
--- | Convenience function for running a Churro with a Chan Transport.
+-- | Convenience function for running a Churro with an Unagi Transport.
 -- 
 runWaitUnagi :: ChurroUnagi Void Void -> IO ()
 runWaitUnagi = runWait
 
--- | Convenience function for running a Churro into a List with a Chan Transport.
+-- | Convenience function for running a Churro into a List with an Unagi Transport.
 -- 
 runWaitListUnagi :: ChurroUnagi Void o -> IO [o]
 runWaitListUnagi = runWaitList

@@ -58,7 +58,7 @@ Or for itterative development:
 * [x] Write doctests for functionality
 * [x] Get Doctests working as part of the cabal test-suite
 * [ ] Add seperate projects to allow minimal core and enciched ecosystem e.g. churros-unagi
-* [ ] Bundle in/out channels in the Transport class to allow Unagi to implement it
+* [x] Bundle in/out channels in the Transport class to allow Unagi to implement it
 * [ ] Create profunctor instance
 * [ ] Create contravariant functor instance
 * [ ] Create ArrowChoice instance
