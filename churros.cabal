@@ -1,6 +1,6 @@
 cabal-version:       2.2
 name:                churros
-version:             0.1.1.0
+version:             0.1.2.0
 license-file:        LICENSE
 author:              Lyndon Maydwell
 maintainer:          lyndon@sordina.net
@@ -29,7 +29,8 @@ common churros-dependencies
     async,
     stm,
     containers,
-    random
+    random,
+    unagi-chan
 
 library
   import: churros-dependencies
@@ -40,6 +41,8 @@ library
     Control.Churro.Prelude,
     Control.Churro.Transport,
     Control.Churro.Transport.Chan
+    Control.Churro.Transport.Unagi
+    Control.Churro.Transport.Unagi.Bounded
 
 test-suite churros-test
   import:            churros-dependencies
@@ -49,9 +52,11 @@ test-suite churros-test
   build-depends:     doctest
   ghc-options:       -threaded -rtsopts
   other-modules:
-    Control.Churro,
-    Control.Churro.Types,
-    Control.Churro.Prelude,
-    Control.Churro.Transport,
-    Control.Churro.Transport.Chan,
+    Control.Churro
+    Control.Churro.Types
+    Control.Churro.Prelude
+    Control.Churro.Transport
+    Control.Churro.Transport.Chan
+    Control.Churro.Transport.Unagi
+    Control.Churro.Transport.Unagi.Bounded
     Churro.Test.Examples

@@ -2,9 +2,25 @@
 
 > Chan + Arrow = Churro
 
-Simple alternative to Conduit, Pipes, Streams, Machines, etc.
+Simple alternative to
+   [Conduit](https://hackage.haskell.org/package/conduit),
+   [Pipes](https://hackage.haskell.org/package/pipes),
+   [Streaming](https://hackage.haskell.org/package/streaming),
+   [Machines](https://hackage.haskell.org/package/machines), etc.
 
 Use-case is CSP like scenarios where you need a graph of actors.
+
+Signup Example:
+
+```
+New-Users {-> ID} ---> Validate {ID -> (ID,Email} ?--> Deploy {Email -> Port} --?-> Log {Port|Receipt ->}
+-----------------      -------------------------- |    ----------------------   |   ---------------------
+    Subscribe                 REST Request        |          Run Server         |        Write File
+                                                  |                             |
+                                                  +--> Warn {Email -> Receipt} -+
+                                                       -----------------------
+                                                             Send Email
+```
 
 Developed from a history of attempting to use co-routines libraries for setting up complicated asynchronous processes
 such as collections of MIDI instruments, etc, but being frustrated by not easily being able to conditionally
@@ -50,6 +66,13 @@ Or for itterative development:
 
 ## TODO
 
+* [ ] Add seperate projects to allow minimal core and enciched ecosystem e.g. churros-unagi
+* [ ] Create profunctor instance
+* [ ] Create contravariant functor instance
+* [ ] Create ArrowChoice instance
+* [ ] Create ArrowLoop instance
+* [ ] Different transports for sections of the graph
+* [ ] Allow configurable parallelism / Pool Churro functions
 * [x] Recovery/Retry capability
 * [x] Fix await deadlock
 * [x] Generic Chan functions, then specific newtype
@@ -57,14 +80,8 @@ Or for itterative development:
 * [x] Different transport options, buffered, etc.
 * [x] Write doctests for functionality
 * [x] Get Doctests working as part of the cabal test-suite
-* [ ] Bundle in/out channels in the Transport class to allow Unagi to implement it
-* [ ] Create profunctor instance
-* [ ] Create contravariant functor instance
-* [ ] Create ArrowChoice instance
-* [ ] Create ArrowLoop instance
+* [x] Bundle in/out channels in the Transport class to allow Unagi to implement it
 * [x] Allow returning of results from run functions
 * [x] Get haddocks rendering correctly - Including contents
-* [ ] Different transports for sections of the graph
-* [ ] Allow configurable parallelism
 * [x] Early termination if downstream consumer completes
     - [x] Ensure that infinite lists work when partially consumed

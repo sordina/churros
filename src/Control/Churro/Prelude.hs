@@ -336,13 +336,13 @@ processRetry' retries f = arr (0,) >>> processRetry'' retries f
 -- 
 --   Also polymorphic over exception type. And forwards errors.
 --   
-processRetry'' :: (Exception e, Transport t) => Natural -> (a -> IO o) -> Churro t (Natural, a) (Either e o)
+processRetry'' :: (Transport t, Exception e, Ord n, Enum n) => n -> (a -> IO b) -> Churro t (n, a) (Either e b)
 processRetry'' retries f =
-    buildChurro \i o -> do
-        yankAll i \(n, y) -> do
+    buildChurro' \i' o i -> do
+        yankAll o \(n, y) -> do
             r <- try do f y
-            yeet o (Just r)
+            yeet i (Just r)
             case r of
                 Right _ -> return ()
-                Left  _ -> when (n < retries) do yeet i (Just (succ n, y))
-        yeet o Nothing
+                Left  _ -> when (n < retries) do yeet i' (Just (succ n, y))
+        yeet i Nothing

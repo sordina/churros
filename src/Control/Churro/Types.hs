@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE BlockArguments #-}
@@ -29,11 +30,16 @@ import Control.Exception (finally)
 -- 
 -- The items on transports are wrapped in `Maybe` to allow signalling of completion of a source.
 -- 
--- When building a program by composing Churros, the output Transport of one Churro is fed into the input Transports of other Churros.
+-- When building a program by composing Churros, the output Transport of one
+-- Churro is fed into the input Transports of other Churros.
 -- 
--- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined, although use is not required.
+-- Type families are used to allow the in/out channels to have different types
+-- and prevent accidentally reading/writing from the wrong transport.
 -- 
-data Churro t i o   = Churro { runChurro :: IO (t (Maybe i), t (Maybe o), Async ()) }
+-- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined,
+-- although use is not required.
+-- 
+data Churro t i o   = Churro { runChurro :: IO (In t (Maybe i), Out t (Maybe o), Async ()) }
 type Source t   o   = Churro t Void o
 type Sink   t i     = Churro t i Void
 type DoubleDipped t = Churro t Void Void
@@ -48,17 +54,21 @@ type DoubleDipped t = Churro t Void Void
 -- * Unagi
 -- * Various buffered options
 -- 
--- Transports used in conjunction with Churros wrap items in Maybe so that once a source has been depleted it can signal completion with
--- a Nothing item.
+-- Transports used in conjunction with Churros wrap items in Maybe so that once
+-- a source has been depleted it can signal completion with a Nothing item.
 -- 
--- The flex method returns two transports, so that channels such as unagi that create an in/outs pair can have a Transport instance.
+-- The flex method returns two transports, so that channels such as unagi that
+-- create an in/outs pair can have a Transport instance.
 -- 
--- Channels like Chan that have a single channel act as in/out simply reuse the same channel in the pair returned.
+-- Channels like Chan that have a single channel act as in/out simply reuse the
+-- same channel in the pair returned.
 -- 
-class Transport t where
-    flex :: IO (t a, t a)      -- ^ Create a new pair of transports.
-    yank :: t a -> IO a        -- ^ Yank an item of the Transport
-    yeet :: t a -> a -> IO ()  -- ^ Yeet an item onto the Transport
+class Transport (t :: * -> *) where
+    data In  t :: * -> *
+    data Out t :: * -> *
+    flex :: IO (In t a, Out t a)  -- ^ Create a new pair of transports.
+    yank :: Out t a -> IO a       -- ^ Yank an item of the Transport
+    yeet :: In t a -> a -> IO ()  -- ^ Yeet an item onto the Transport
 
 -- | Covariant functor instance for Churro - Maps over the output.
 -- 
@@ -197,23 +207,34 @@ instance Transport t => Arrow (Churro t) where
 -- 
 -- The manipulations performed are carried out in the async action associated with the Churro
 -- 
-buildChurro :: Transport t => (t (Maybe i) -> t (Maybe o) -> IO ()) -> Churro t i o
+buildChurro :: Transport t => (Out t (Maybe i) -> In t (Maybe o) -> IO ()) -> Churro t i o
 buildChurro cb = Churro do
     (ai,ao) <- flex
     (bi,bo) <- flex
-    a     <- async do cb ao bi
+    a       <- async do cb ao bi
+    return (ai,bo,a)
+
+-- | A version of `buildChurro` that also passes the original input to the callback so that you can reschedule items.
+-- 
+-- Used by "retry" style functions.
+-- 
+buildChurro' :: Transport t => (In t (Maybe i) -> Out t (Maybe i) -> In t (Maybe o) -> IO ()) -> Churro t i o
+buildChurro' cb = Churro do
+    (ai,ao) <- flex
+    (bi,bo) <- flex
+    a       <- async do cb ai ao bi
     return (ai,bo,a)
 
 -- | Yeet all items from a list into a transport.
 -- 
-yeetList :: (Foldable t1, Transport t2) => t2 a -> t1 a -> IO ()
+yeetList :: (Foldable f, Transport t) => In t a -> f a -> IO ()
 yeetList t = mapM_ (yeet t)
 
 -- | Yank all items from a Raw transport into a list.
 -- 
 --   Won't terminate until the transport has been consumed.
 -- 
-yankList :: Transport t => t (Maybe a) -> IO [a]
+yankList :: Transport t => Out t (Maybe a) -> IO [a]
 yankList t = do
     x <- yank t
     case x of 
@@ -222,7 +243,7 @@ yankList t = do
 
 -- | Yank each item from a transport into a callback.
 -- 
-yankAll :: Transport t => t (Maybe i) -> (i -> IO a) -> IO ()
+yankAll :: Transport t => Out t (Maybe i) -> (i -> IO a) -> IO ()
 yankAll c f = do
     x <- yank c
     case x of
@@ -233,7 +254,7 @@ yankAll c f = do
 -- 
 -- The items are wrapped in Maybes and when all items are yanked, Nothing is fed to the callback.
 -- 
-yankAll' :: Transport t => t (Maybe a) -> (Maybe a -> IO b) -> IO b
+yankAll' :: Transport t => Out t (Maybe a) -> (Maybe a -> IO b) -> IO b
 yankAll' c f = do
     yankAll c (f . Just)
     f Nothing
@@ -242,8 +263,8 @@ yankAll' c f = do
 -- 
 -- Raw items are used so `Nothing` should be Yeeted once the transport is depleted.
 -- 
-c2c :: Transport t => (i -> o) -> t (Maybe i) -> t (Maybe o) -> IO ()
-c2c f i o = yankAll' i (yeet o . fmap f)
+c2c :: Transport t => (a -> b) -> Out t (Maybe a) -> In t (Maybe b) -> IO ()
+c2c f o i = yankAll' o (yeet i . fmap f)
 
 -- | Flipped `finally`.
 finally' :: IO b -> IO a -> IO a

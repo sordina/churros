@@ -17,10 +17,11 @@ import Control.Churro.Types
 
 -- | Write a list to a raw Transport.
 -- 
+-- >>> :set -XTypeApplications
 -- >>> import Control.Concurrent.Chan
 -- >>> :{
 -- do
---   (i,o) <- flex :: IO (TransportChan (Maybe Int))
+--   (i,o) <- flex @Chan
 --   l2c i (map Just [1,2] ++ [Nothing])
 --   yankAll' o print
 -- :}
@@ -29,5 +30,5 @@ import Control.Churro.Types
 -- Just Nothing
 -- Nothing
 -- 
-l2c :: Transport t => t (Maybe a) -> [a] -> IO ()
+l2c :: (Foldable f, Transport t) => In t (Maybe a) -> f a -> IO ()
 l2c c l = mapM_ (yeet c . Just) l >> yeet c Nothing

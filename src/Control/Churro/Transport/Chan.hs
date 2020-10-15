@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE BlockArguments #-}
 
@@ -12,14 +13,15 @@ import Control.Concurrent
 import Data.Void
 
 instance Transport Chan where
-    yank = readChan
-    yeet = writeChan
+    data In  Chan a = ChanIn  (Chan a)
+    data Out Chan a = ChanOut (Chan a)
+    yank (ChanOut c) = readChan  c
+    yeet (ChanIn  c) = writeChan c
     flex = do 
         c <- newChan
-        return (c,c)
+        return (ChanIn c, ChanOut c)
 
-type ChurroChan      = Churro Chan
-type TransportChan a = (Chan (Maybe a), Chan (Maybe a))
+type ChurroChan = Churro Chan
 
 -- | Convenience function for running a Churro with a Chan Transport.
 -- 
