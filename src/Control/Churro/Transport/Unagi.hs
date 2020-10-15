@@ -26,10 +26,10 @@ type ChurroUnagi = Churro Unagi
 
 -- | Convenience function for running a Churro with a Chan Transport.
 -- 
-runWaitChan :: ChurroUnagi Void Void -> IO ()
-runWaitChan = runWait
+runWaitUnagi :: ChurroUnagi Void Void -> IO ()
+runWaitUnagi = runWait
 
 -- | Convenience function for running a Churro into a List with a Chan Transport.
 -- 
-runWaitListChan :: ChurroUnagi Void o -> IO [o]
-runWaitListChan = runWaitList
+runWaitListUnagi :: ChurroUnagi Void o -> IO [o]
+runWaitListUnagi = runWaitList
