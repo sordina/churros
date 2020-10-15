@@ -1,34 +1,35 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE BlockArguments #-}
 
 -- | Chan Transport Instance.
 
-module Control.Churro.Transport.Chan where
+module Control.Churro.Transport.Unagi where
     
 import Control.Churro.Types
 import Control.Churro.Prelude
 
-import Control.Concurrent
+import Control.Concurrent.Chan.Unagi
 import Data.Void
 
-instance Transport Chan where
-    data In  Chan a = ChanIn  (Chan a)
-    data Out Chan a = ChanOut (Chan a)
+data Unagi a
+
+instance Transport Unagi where
+    data In  Unagi a = ChanIn  (InChan  a)
+    data Out Unagi a = ChanOut (OutChan a)
     yank (ChanOut c) = readChan  c
     yeet (ChanIn  c) = writeChan c
     flex = do 
-        c <- newChan
-        return (ChanIn c, ChanOut c)
+        (i, o) <- newChan
+        return (ChanIn i, ChanOut o)
 
-type ChurroChan = Churro Chan
+type ChurroUnagi = Churro Unagi
 
 -- | Convenience function for running a Churro with a Chan Transport.
 -- 
-runWaitChan :: ChurroChan Void Void -> IO ()
+runWaitChan :: ChurroUnagi Void Void -> IO ()
 runWaitChan = runWait
 
 -- | Convenience function for running a Churro into a List with a Chan Transport.
 -- 
-runWaitListChan :: ChurroChan Void o -> IO [o]
+runWaitListChan :: ChurroUnagi Void o -> IO [o]
 runWaitListChan = runWaitList

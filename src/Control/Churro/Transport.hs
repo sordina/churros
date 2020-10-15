@@ -29,5 +29,5 @@ import Control.Churro.Types
 -- Just Nothing
 -- Nothing
 -- 
-l2c :: Transport t => t (Maybe a) -> [a] -> IO ()
+l2c :: (Foldable f, Transport t) => In t (Maybe a) -> f a -> IO ()
 l2c c l = mapM_ (yeet c . Just) l >> yeet c Nothing

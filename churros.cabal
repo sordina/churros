@@ -29,7 +29,8 @@ common churros-dependencies
     async,
     stm,
     containers,
-    random
+    random,
+    unagi-chan
 
 library
   import: churros-dependencies
