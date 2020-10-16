@@ -116,6 +116,21 @@ instance Transport t => Category (Churro () t) where
                 cancel a
         return (fi, go, b)
 
+-- | Category style composition that allows for return type to change downstream.
+-- 
+(>>>>) :: (Transport t, fo ~ gi) => Churro fa t fi fo -> Churro ga t gi go -> IO (In t (Maybe fi), Out t (Maybe go), Async ga)
+f >>>> g = do
+    (fi, fo, fa) <- runChurro f
+    (gi, go, ga) <- runChurro g
+    a <- async do c2c id fo gi
+    b <- async do
+        finally' (cancel a >> cancel fa >> cancel ga) do
+            r <- wait ga
+            cancel fa
+            cancel a
+            return r
+    return (fi, go, b)
+
 -- | The Applicative instance allows for pairwise composition of Churro pipelines.
 --   Once again this is covariat and the composition occurs on the output transports of the Churros.
 -- 
@@ -208,11 +223,7 @@ instance Transport t => Arrow (Churro () t) where
 -- The manipulations performed are carried out in the async action associated with the Churro
 -- 
 buildChurro :: Transport t => (Out t (Maybe i) -> In t (Maybe o) -> IO a) -> Churro a t i o
-buildChurro cb = Churro do
-    (ai,ao) <- flex
-    (bi,bo) <- flex
-    a       <- async do cb ao bi
-    return (ai,bo,a)
+buildChurro cb = buildChurro' \_o' i o -> cb i o
 
 -- | A version of `buildChurro` that also passes the original input to the callback so that you can reschedule items.
 -- 
