@@ -37,7 +37,7 @@ Advantages over other alternatives:
 Disadvantages:
 
 * No pure interface!
-* No expressive return type for the async action representing the background process is encoded in the Churro datatype (could this be addressed?)
+* Type for the async action restricted to Monoid for most operations.
 * Limited ability to perform lock-step computation (although this is by design)
 
 See [Hackage](https://hackage.haskell.org/package/churros-0.1.0.0/candidate) for more info!
