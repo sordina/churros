@@ -18,7 +18,6 @@ import           Control.Concurrent.Async (waitAny, Async, wait)
 import           Control.Exception        (Exception, SomeException, try)
 import           Control.Monad            (replicateM_, when)
 import           Data.Foldable            (for_)
-import           Data.IORef               (newIORef, readIORef, writeIORef)
 import           Data.Maybe               (isJust)
 import           Data.Time                (NominalDiffTime)
 import           Data.Void                (Void)
@@ -51,21 +50,11 @@ runWait x = wait =<< run x
 -- >>> runWaitListChan $ sourceList [0..4] >>> arr succ
 -- [1,2,3,4,5]
 -- 
-runWaitList :: Transport t => Churro () t Void o -> IO [o]
-runWaitList x = do
-    t <- newIORef []
-
-    let
-        c = buildChurro \i _o -> do
-            l <- yankList i
-            writeIORef t l
-
-    runWait $ x >>> c
-
-    readIORef t
+runWaitList :: (Transport t, Monoid a) => Churro a t Void b -> IO [b]
+runWaitList c = runWait $ (c >>> arr' (:[])) >>>> sink 
 
 -- | Run a sourced and sinked (double-dipped) churro and return an async action representing the in-flight processes.
--- 
+--
 run :: Transport t => Churro a t Void Void -> IO (Async a)
 run = run'
 
@@ -118,14 +107,22 @@ sourceIO cb =
 -- 
 -- Sends individual items downstream without attempting to combine them.
 -- 
--- >>> runWaitChan $ sources [pure 1, pure 1] >>> sinkPrint
+-- Warning: Passing an empty list is unspecified.
+-- 
+-- TODO: Use NonEmptyList instead of []
+-- 
+-- >>> runWaitChan $ sources_ [pure 1, pure 1] >>> sinkPrint
 -- 1
 -- 1
-sources :: Transport t => [Source () t o] -> Source () t o
+sources :: (Transport t, Monoid a) => [Source a t o] -> Source () t o
 sources ss = sourceIO \cb -> do
-    asyncs <- mapM (\s -> run $ s >>> sinkIO cb) ss
-    (a, _) <- waitAny asyncs
-    wait a
+    asyncs <- mapM (\s -> run $ s >>>> sinkIO cb) ss
+    (_, r) <- waitAny asyncs
+    return r
+
+-- | This is `sources` specialised to `()`.
+sources_ :: Transport t => [Source () t o] -> Source () t o
+sources_ = sources
 
 -- ** Sinks
 
@@ -133,18 +130,27 @@ sources ss = sourceIO \cb -> do
 -- 
 -- TODO: Decide if we should use some kind of `nf` evaluation here to force items.
 -- 
--- >>> runWaitChan $ pure 1 >>> process print >>> sink
+-- >>> runWaitChan $ pure 1 >>> process print >>> sink_
 -- 1
 -- 
-sink :: Transport t => Churro () t b Void
-sink = sinkIO (const (return ()))
+sink_ :: Transport t => Churro () t i Void
+sink_ = sinkIO (const (return ()))
+
+-- | Consume all items and combines them into a result via their monoid.
+-- 
+-- >>> :set -XFlexibleContexts
+-- >>> r <- runWaitChan $ pure' [1 :: Int] >>> sink
+-- >>> print r
+-- [1]
+sink :: (Transport t, Monoid a) => Churro a t a Void
+sink = sinkIO return
 
 -- | Consume a churro with an IO process.
 -- 
 -- >>> runWaitChan $ pure 1 >>> sinkIO (\x -> print "hello" >> print (succ x))
 -- "hello"
 -- 2
-sinkIO :: Transport t => (o -> IO a) -> Churro () t o Void
+sinkIO :: (Transport t, Monoid a) => (o -> IO a) -> Churro a t o Void
 sinkIO cb = buildChurro \i _o -> yankAll i cb
 
 -- | Create a "sink" with more flexibility about when items are demanded using a higher-order "HO" callback.
@@ -165,7 +171,7 @@ sinkIO cb = buildChurro \i _o -> yankAll i cb
 -- :}
 -- "1"
 -- Just 25
-sinkHO :: Transport t => (((i -> IO x) -> IO ()) -> IO a) -> Churro a t i o
+sinkHO :: Transport t => (((i -> IO ()) -> IO ()) -> IO a) -> Churro a t i o
 sinkHO cb = buildChurro \i _o -> cb (yankAll i)
 
 -- | Consume and print each item. Used in many examples, but not much use outside debugging!
@@ -202,7 +208,7 @@ processDebug d = process \x -> putStrLn ("Debugging [" <> d <> "]: " <> show x) 
 -- "1"
 -- 1
 -- 2
-processN :: Transport t => (a -> IO [b]) -> Churro () t a b
+processN :: Transport t => (i -> IO [o]) -> Churro () t i o
 processN f =
     buildChurro \i o -> do
         yankAll i \x -> do mapM_ (yeet o . Just) =<< f x

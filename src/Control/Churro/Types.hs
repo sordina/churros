@@ -2,6 +2,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 -- | Datatypes and definitions used by Churro library.
 -- 
@@ -99,10 +100,10 @@ instance Transport t => Functor (Churro a t i) where
 -- 
 -- >>> runWaitChan $ pure 1 >>> id >>> id >>> id >>> sinkPrint
 -- 1
-instance Transport t => Category (Churro () t) where
+instance (Transport t, Monoid a) => Category (Churro a t) where
     id = Churro do
         (i,o) <- flex
-        a     <- async (return ())
+        a     <- async mempty
         return (i,o,a)
 
     g . f = f >>>> g
@@ -127,8 +128,10 @@ f >>>> g = Churro do
 -- 
 --  The `pure` method allows for the creation of a Churro yielding a single item.
 -- 
+-- TODO: Generalise () to a Monoid constraint.
+-- 
 instance Transport t => Applicative (Churro () t Void) where
-    pure x = buildChurro \_i o -> yeet o (Just x) >> yeet o Nothing
+    pure = pure'
 
     f <*> g = buildChurro \_i o -> do
         (_fi, fo, fa) <- runChurro f
@@ -149,10 +152,14 @@ instance Transport t => Applicative (Churro () t Void) where
         wait fa
         wait ga
 
+-- | More general variant of `pure` with Monoid constraint.
+pure' :: (Transport t, Monoid a) => o -> Churro a t i o
+pure' x = buildChurro \_i o -> yeet o (Just x) >> yeet o Nothing >> return mempty
+
 -- | The Arrow instance allows for building non-cyclic directed graphs of churros.
 -- 
 --  The `arr` method allows for the creation of a that maps items with a pure function.
---  This is equivalent to `fmap f id`.
+--  This is equivalent to `fmap f id`. This is more general and exposed via arr`.
 -- 
 -- >>> :set -XArrows
 -- >>> :{
@@ -182,7 +189,7 @@ instance Transport t => Applicative (Churro () t Void) where
 -- >>> runWaitChan $ pure 1 >>> (arr show &&& arr succ) >>> sinkPrint
 -- ("1",2)
 instance Transport t => Arrow (Churro () t) where
-    arr = flip fmap id
+    arr = arr'
 
     first c = Churro do
         (i,o,a)   <- runChurro c
@@ -206,6 +213,12 @@ instance Transport t => Arrow (Churro () t) where
             wait a
 
         return (ai',bo',a')
+
+-- | More general version of `arr`.
+-- 
+-- Useful when building pipelines that need to work with return types.
+arr' :: (Functor (cat a), Category cat) => (a -> b) -> cat a b
+arr' f = fmap f id
 
 -- ** Helpers
 
@@ -237,29 +250,26 @@ yeetList t = mapM_ (yeet t)
 --   Won't terminate until the transport has been consumed.
 -- 
 yankList :: Transport t => Out t (Maybe a) -> IO [a]
-yankList t = do
-    x <- yank t
-    case x of 
-        Nothing -> return []
-        Just y  -> (y :) <$> yankList t
+yankList = flip yankAll (pure . pure)
 
 -- | Yank each item from a transport into a callback.
 -- 
-yankAll :: Transport t => Out t (Maybe i) -> (i -> IO a) -> IO ()
+yankAll :: (Transport t, Monoid a) => Out t (Maybe i) -> (i -> IO a) -> IO a
 yankAll c f = do
     x <- yank c
     case x of
-        Nothing -> return ()
-        Just y  -> f y >> yankAll c f
+        Nothing -> mempty
+        Just y  -> f y <> yankAll c f
 
 -- | Yank each raw item from a transport into a callback.
 -- 
 -- The items are wrapped in Maybes and when all items are yanked, Nothing is fed to the callback.
 -- 
-yankAll' :: Transport t => Out t (Maybe a) -> (Maybe a -> IO b) -> IO b
+yankAll' :: (Transport t, Monoid b) => Out t (Maybe a) -> (Maybe a -> IO b) -> IO b
 yankAll' c f = do
-    yankAll c (f . Just)
-    f Nothing
+    x <- yankAll c (f . Just)
+    y <- f Nothing
+    return (x <> y)
 
 -- | Yank then Yeet each item from one Transport into another.
 -- 
