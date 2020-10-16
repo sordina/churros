@@ -1,12 +1,9 @@
 
 module Main where
 
-import Test.DocTest
+import Test.DocTest ( doctest )
 
--- import qualified Churro.Test.Examples as Ex
--- import qualified Build_doctests       as DT
-
--- TODO: Find out how to use a different test manager to allow these to be run independently
+-- TODO: Pass additional paths in automatically or via arguments.
 main :: IO ()
 main = do
     doctest
