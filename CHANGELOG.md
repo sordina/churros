@@ -1,5 +1,9 @@
 # Revision history for Churros
 
+## 0.1.3.0 -- 2020-10-17
+
+* Generalised functions to have Monoid for Async action result.
+
 ## 0.1.2.0 -- 2020-10-15
 
 * Added type families to transport class to allow for different in/out types

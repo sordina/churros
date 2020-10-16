@@ -35,7 +35,7 @@ import Control.Churro
 -- Debugging [r2]: 1
 -- 1 
 --
-linear :: Transport t => Churro t Void Void
+linear :: Transport t => Churro () t Void Void
 linear = sourceList [1::Int]
     >>> ((processDebug "l1" >>> processDebug "l2") >>> processDebug "r1" >>> processDebug "r2")
     >>> sinkPrint
@@ -45,7 +45,7 @@ linear = sourceList [1::Int]
 -- >>> runWaitChan pipeline
 -- (fromList [(0,0),(1,1)],fromList [(1,1),(2,2)])
 -- (fromList [(1,1),(2,2)],fromList [(2,2),(3,3)])
-pipeline :: ChurroChan Void Void
+pipeline :: ChurroChan () Void Void
 pipeline = sourceList (take 3 maps)
         >>> withPrevious
         >>> takeC (10 :: Int)
@@ -58,7 +58,7 @@ pipeline = sourceList (take 3 maps)
 -- 
 -- This can fail in the following scenarios if cancellation isn't implemented correctly:
 -- 
--- >>> timeout 1500000 $ runWaitChan $ sourceList [1..5] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- >>> timeout 150000 $ runWaitChan $ sourceList [1..5] >>> delay 0.1 >>> takeC 1 >>> sinkPrint
 -- 1
 -- Just ()
 -- 
@@ -70,7 +70,7 @@ pipeline = sourceList (take 3 maps)
 -- 
 -- Cancells upstream infinite producer with no inbuilt delay:
 -- 
--- >>> timeout 2500000 $ runWaitChan $ sourceList [1..] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- >>> timeout 2500000 $ runWaitChan $ sourceList [1..] >>> delay 0.1 >>> takeC 1 >>> sinkPrint
 -- 1
 -- Just ()
 -- 

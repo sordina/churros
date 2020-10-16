@@ -36,16 +36,16 @@ instance KnownNat n => Transport (UnagiBounded n) where
         (i, o) <- newChan (fromIntegral (natVal (Proxy :: Proxy n)))
         return (ChanIn i, ChanOut o)
 
-type ChurroUnagiBounded n = Churro (UnagiBounded n)
+type ChurroUnagiBounded a n = Churro a (UnagiBounded n)
 
 -- | Convenience function for running a Churro with a Bounded Unagi-Chan Transport.
 -- 
-runWaitUnagi :: KnownNat n => ChurroUnagiBounded n Void Void -> IO ()
+runWaitUnagi :: KnownNat n => ChurroUnagiBounded a n Void Void -> IO a
 runWaitUnagi = runWait
 
 -- | Convenience function for running a Churro into a List with a Bounded Unagi-Chan Transport.
 -- 
 -- >>> runWaitListUnagi @10 $ sourceList [1,2,3] >>> arr succ
 -- [2,3,4]
-runWaitListUnagi :: KnownNat n => ChurroUnagiBounded n Void o -> IO [o]
+runWaitListUnagi :: KnownNat n => ChurroUnagiBounded () n Void o -> IO [o]
 runWaitListUnagi = runWaitList

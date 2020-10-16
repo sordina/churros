@@ -22,14 +22,14 @@ instance Transport Unagi where
         (i, o) <- newChan
         return (ChanIn i, ChanOut o)
 
-type ChurroUnagi = Churro Unagi
+type ChurroUnagi a = Churro a Unagi
 
 -- | Convenience function for running a Churro with an Unagi Transport.
 -- 
-runWaitUnagi :: ChurroUnagi Void Void -> IO ()
+runWaitUnagi :: ChurroUnagi a Void Void -> IO a
 runWaitUnagi = runWait
 
 -- | Convenience function for running a Churro into a List with an Unagi Transport.
 -- 
-runWaitListUnagi :: ChurroUnagi Void o -> IO [o]
+runWaitListUnagi :: ChurroUnagi () Void o -> IO [o]
 runWaitListUnagi = runWaitList
