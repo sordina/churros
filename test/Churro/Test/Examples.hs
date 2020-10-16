@@ -58,7 +58,7 @@ pipeline = sourceList (take 3 maps)
 -- 
 -- This can fail in the following scenarios if cancellation isn't implemented correctly:
 -- 
--- >>> timeout 1500000 $ runWaitChan $ sourceList [1..5] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- >>> timeout 150000 $ runWaitChan $ sourceList [1..5] >>> delay 0.1 >>> takeC 1 >>> sinkPrint
 -- 1
 -- Just ()
 -- 
@@ -70,7 +70,7 @@ pipeline = sourceList (take 3 maps)
 -- 
 -- Cancells upstream infinite producer with no inbuilt delay:
 -- 
--- >>> timeout 2500000 $ runWaitChan $ sourceList [1..] >>> delay 1 >>> takeC 1 >>> sinkPrint
+-- >>> timeout 2500000 $ runWaitChan $ sourceList [1..] >>> delay 0.1 >>> takeC 1 >>> sinkPrint
 -- 1
 -- Just ()
 -- 

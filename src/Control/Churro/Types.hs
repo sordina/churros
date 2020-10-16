@@ -105,21 +105,12 @@ instance Transport t => Category (Churro () t) where
         a     <- async (return ())
         return (i,o,a)
 
-    g . f = Churro do
-        (fi, fo, fa) <- runChurro f
-        (gi, go, ga) <- runChurro g
-        a <- async do c2c id fo gi
-        b <- async do
-            finally' (cancel a >> cancel fa >> cancel ga) do
-                wait ga
-                cancel fa
-                cancel a
-        return (fi, go, b)
+    g . f = f >>>> g
 
 -- | Category style composition that allows for return type to change downstream.
 -- 
-(>>>>) :: (Transport t, fo ~ gi) => Churro fa t fi fo -> Churro ga t gi go -> IO (In t (Maybe fi), Out t (Maybe go), Async ga)
-f >>>> g = do
+(>>>>) :: (Transport t, fo ~ gi) => Churro a1 t fi fo -> Churro a2 t gi go -> Churro a2 t fi go
+f >>>> g = Churro do
     (fi, fo, fa) <- runChurro f
     (gi, go, ga) <- runChurro g
     a <- async do c2c id fo gi

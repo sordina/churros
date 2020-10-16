@@ -29,6 +29,7 @@ import           GHC.Natural              (Natural)
 -- 
 -- The examples in this module require the following imports:
 -- 
+-- >>> :set -XBlockArguments
 -- >>> import Control.Churro.Transport
 -- >>> import Data.Time.Clock
 -- 
@@ -145,6 +146,27 @@ sink = sinkIO (const (return ()))
 -- 2
 sinkIO :: Transport t => (o -> IO a) -> Churro () t o Void
 sinkIO cb = buildChurro \i _o -> yankAll i cb
+
+-- | Create a "sink" with more flexibility about when items are demanded using a higher-order "HO" callback.
+-- 
+-- This also allows a non-unit async action that can be recovered when run.
+-- 
+-- WARNING: You should use the provided callback if you want to acually create a sink.
+-- 
+-- TODO: Use hidden callback return type in order to ensure that the callback is called.
+-- 
+-- >>> import System.Timeout (timeout)
+-- >>> :{
+-- do
+--   r <- timeout 100000 $ runWaitChan $ sourceSingleton 1 >>>> sinkHO \ya -> do
+--     ya (print . show)
+--     return 25
+--   print r
+-- :}
+-- "1"
+-- Just 25
+sinkHO :: Transport t => (((i -> IO x) -> IO ()) -> IO a) -> Churro a t i o
+sinkHO cb = buildChurro \i _o -> cb (yankAll i)
 
 -- | Consume and print each item. Used in many examples, but not much use outside debugging!
 -- 
