@@ -40,7 +40,7 @@ Disadvantages:
 * Type for the async action restricted to Monoid for most operations.
 * Limited ability to perform lock-step computation (although this is by design)
 
-See [Hackage](https://hackage.haskell.org/package/churros-0.1.0.0/candidate) for more info!
+See [Hackage](https://hackage.haskell.org/package/churros) for more info!
 
 ## Examples
 
