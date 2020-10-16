@@ -15,6 +15,8 @@ import Data.List
 import Prelude hiding (id, (.))
 
 import Control.Churro
+import Control.Concurrent.Async (wait)
+import Control.Concurrent (Chan)
 
 -- $setup
 -- 
@@ -23,6 +25,14 @@ import Control.Churro
 -- >>> import Control.Concurrent (threadDelay)
 
 -- ** Tests
+
+-- | Example from readme:
+-- >>> readme
+
+readme :: IO ()
+readme = do
+    runWaitChan             $ sourceList [1..10] >>> processDebug "after source" >>> delay 1 {- seconds -} >>> arr succ >>> sinkPrint
+    (wait =<<)  $ run @Chan $ sourceIO (\cb -> cb 1 >> print "Doing whatever!" >> cb 5) >>> filterC (> 3) >>> sinkIO print
 
 -- | Checks that the IO nature of the churros doesn't duplicate operations.
 --   Actions within a pipeline should only occur once no matter how the
