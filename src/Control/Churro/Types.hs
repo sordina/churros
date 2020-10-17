@@ -40,10 +40,10 @@ import Control.Exception (finally)
 -- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined,
 -- although use is not required.
 -- 
-data Churro a t i o   = Churro { runChurro :: IO (In t (Maybe i), Out t (Maybe o), Async a) }
-type Source a t   o   = Churro a t Void o
-type Sink   a t i     = Churro a t i Void
-type DoubleDipped a t = Churro a t Void Void
+newtype Churro a t i o   = Churro { runChurro :: IO (In t (Maybe i), Out t (Maybe o), Async a) }
+type    Source a t   o   = Churro a t Void o
+type    Sink   a t i     = Churro a t i Void
+type    DoubleDipped a t = Churro a t Void Void
 
 -- | The transport method is abstracted via the Transport class
 -- 
@@ -128,9 +128,9 @@ f >>>> g = Churro do
 -- 
 --  The `pure` method allows for the creation of a Churro yielding a single item.
 -- 
--- TODO: Generalise () to a Monoid constraint.
+-- TODO: Write test to check Monoid return type.
 -- 
-instance Transport t => Applicative (Churro () t Void) where
+instance (Transport t, Monoid a) => Applicative (Churro a t Void) where
     pure = pure'
 
     f <*> g = buildChurro \_i o -> do
@@ -188,7 +188,10 @@ pure' x = buildChurro \_i o -> yeet o (Just x) >> yeet o Nothing >> return mempt
 -- 
 -- >>> runWaitChan $ pure 1 >>> (arr show &&& arr succ) >>> sinkPrint
 -- ("1",2)
-instance Transport t => Arrow (Churro () t) where
+-- 
+-- TODO: Write tests to check if the monoid return type is implemented correctly.
+-- 
+instance (Transport t, Monoid a) => Arrow (Churro a t) where
     arr = arr'
 
     first c = Churro do
