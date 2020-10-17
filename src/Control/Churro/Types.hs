@@ -16,6 +16,7 @@ import Control.Category
 import Control.Concurrent.Async (cancel, wait, Async, async)
 import Data.Void
 import Control.Exception (finally)
+import Control.Monad.IO.Class (liftIO, MonadIO)
 
 -- $setup
 -- 
@@ -40,10 +41,10 @@ import Control.Exception (finally)
 -- Convenience types of `Source`, `Sink`, and `DoubleDipped` are also defined,
 -- although use is not required.
 -- 
-newtype Churro a t i o   = Churro { runChurro :: IO (In t (Maybe i), Out t (Maybe o), Async a) }
-type    Source a t   o   = Churro a t Void o
-type    Sink   a t i     = Churro a t i Void
-type    DoubleDipped a t = Churro a t Void Void
+newtype Churro m a t i o   = Churro { runChurro :: m (In t (Maybe i), Out t (Maybe o), Async a) }
+type    Source m a t   o   = Churro m a t Void o
+type    Sink   m a t i     = Churro m a t i Void
+type    DoubleDipped m a t = Churro m a t Void Void
 
 -- | The transport method is abstracted via the Transport class
 -- 
@@ -81,14 +82,15 @@ class Transport (t :: * -> *) where
 -- >>> runWaitChan $ fmap succ s >>> sinkPrint
 -- 2
 -- 3
-instance Transport t => Functor (Churro a t i) where
+instance (Transport t, MonadIO m) => Functor (Churro m a t i) where
     fmap f c = Churro do
         (i,o,a) <- runChurro c
-        (i',o') <- flex
-        a' <- async do
-            finally' (cancel a) do
-                c2c f o i'
-                wait a
+        (i',o') <- liftIO flex
+        a'      <- liftIO do
+            async do
+                finally' (cancel a) do
+                    c2c f o i'
+                    wait a
         return (i,o',a')
 
 -- | The Category instance allows for the creation of Churro pipelines.
@@ -100,27 +102,29 @@ instance Transport t => Functor (Churro a t i) where
 -- 
 -- >>> runWaitChan $ pure 1 >>> id >>> id >>> id >>> sinkPrint
 -- 1
-instance (Transport t, Monoid a) => Category (Churro a t) where
+instance (Transport t, MonadIO m, Monoid a) => Category (Churro m a t) where
     id = Churro do
-        (i,o) <- flex
-        a     <- async mempty
-        return (i,o,a)
+        liftIO do
+            (i,o) <- flex
+            a     <- async mempty
+            return (i,o,a)
 
     g . f = f >>>> g
 
 -- | Category style composition that allows for return type to change downstream.
 -- 
-(>>>>) :: (Transport t, fo ~ gi) => Churro a1 t fi fo -> Churro a2 t gi go -> Churro a2 t fi go
+(>>>>) :: (Transport t, MonadIO m, fo ~ gi) => Churro m a1 t fi fo -> Churro m a2 t gi go -> Churro m a2 t fi go
 f >>>> g = Churro do
     (fi, fo, fa) <- runChurro f
     (gi, go, ga) <- runChurro g
-    a <- async do c2c id fo gi
-    b <- async do
-        finally' (cancel a >> cancel fa >> cancel ga) do
-            r <- wait ga
-            cancel fa
-            cancel a
-            return r
+    a <- liftIO do async do c2c id fo gi
+    b <- liftIO do
+        async do
+            finally' (cancel a >> cancel fa >> cancel ga) do
+                r <- wait ga
+                cancel fa
+                cancel a
+                return r
     return (fi, go, b)
 
 -- | The Applicative instance allows for pairwise composition of Churro pipelines.
@@ -130,7 +134,7 @@ f >>>> g = Churro do
 -- 
 -- TODO: Write test to check Monoid return type.
 -- 
-instance (Transport t, Monoid a) => Applicative (Churro a t Void) where
+instance (Transport t, MonadIO m, Monoid a) => Applicative (Churro m a t Void) where
     pure = pure'
 
     f <*> g = buildChurro \_i o -> do
@@ -153,7 +157,7 @@ instance (Transport t, Monoid a) => Applicative (Churro a t Void) where
         wait ga
 
 -- | More general variant of `pure` with Monoid constraint.
-pure' :: (Transport t, Monoid a) => o -> Churro a t i o
+pure' :: (Transport t, MonadIO m, Monoid a) => o -> Churro m a t i o
 pure' x = buildChurro \_i o -> yeet o (Just x) >> yeet o Nothing >> return mempty
 
 -- | The Arrow instance allows for building non-cyclic directed graphs of churros.
@@ -191,7 +195,7 @@ pure' x = buildChurro \_i o -> yeet o (Just x) >> yeet o Nothing >> return mempt
 -- 
 -- TODO: Write tests to check if the monoid return type is implemented correctly.
 -- 
-instance (Transport t, Monoid a) => Arrow (Churro a t) where
+instance (Transport t, MonadIO m, Monoid a) => Arrow (Churro m a t) where
     arr = arr'
 
     first c = Churro do
@@ -229,19 +233,20 @@ arr' f = fmap f id
 -- 
 -- The manipulations performed are carried out in the async action associated with the Churro
 -- 
-buildChurro :: Transport t => (Out t (Maybe i) -> In t (Maybe o) -> IO a) -> Churro a t i o
+buildChurro :: (Transport t, MonadIO m) => (Out t (Maybe i) -> In t (Maybe o) -> IO a) -> Churro m a t i o
 buildChurro cb = buildChurro' \_o' i o -> cb i o
 
 -- | A version of `buildChurro` that also passes the original input to the callback so that you can reschedule items.
 -- 
 -- Used by "retry" style functions.
 -- 
-buildChurro' :: Transport t => (In t (Maybe i) -> Out t (Maybe i) -> In t (Maybe o) -> IO a) -> Churro a t i o
+buildChurro' :: (Transport t, MonadIO m) => (In t (Maybe i) -> Out t (Maybe i) -> In t (Maybe o) -> IO a) -> Churro m a t i o
 buildChurro' cb = Churro do
-    (ai,ao) <- flex
-    (bi,bo) <- flex
-    a       <- async do cb ai ao bi
-    return (ai,bo,a)
+    liftIO do
+        (ai,ao) <- flex
+        (bi,bo) <- flex
+        a       <- do async do cb ai ao bi
+        return (ai,bo,a)
 
 -- | Yeet all items from a list into a transport.
 -- 
