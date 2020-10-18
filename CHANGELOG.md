@@ -1,5 +1,11 @@
 # Revision history for Churros
 
+## 0.1.4.0 -- 2020-10-18
+
+* Generalising list type to Foldable/Traversible where possible (`sources`).
+* Additional documentation
+* Underscore variants of prelude function that specialise Async action to `()`.
+
 ## 0.1.3.0 -- 2020-10-17
 
 * Generalised functions to have Monoid for Async action result.

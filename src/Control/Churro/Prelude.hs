@@ -5,6 +5,13 @@
 
 -- | Common transport-agnostic functions for using Churro.
 -- 
+-- Variants with a trailing underscore - E.g. `runWait_` specialised the Async action to
+-- be () if you don't care about accumulating results and only processing items as they
+-- pass through the pipeline.
+-- 
+-- Variants with a trailing prime - E.g. `processRetry'`. also change the generality of the
+-- types involved in some way.
+-- 
 module Control.Churro.Prelude where
 
 import Control.Churro.Types
@@ -14,7 +21,7 @@ import Prelude hiding (id, (.))
 import           Control.Arrow            (arr)
 import           Control.Category         (id, (.), (>>>))
 import           Control.Concurrent       (threadDelay)
-import           Control.Concurrent.Async (waitAny, Async, wait)
+import           Control.Concurrent.Async (cancel, Async, wait)
 import           Control.Exception        (Exception, SomeException, try)
 import           Control.Monad            (replicateM_, when)
 import           Data.Foldable            (toList, for_)
@@ -40,6 +47,11 @@ import           GHC.Natural              (Natural)
 runWait :: Transport t => Churro a t Void Void -> IO a
 runWait x = wait =<< run x
 
+-- | Version of `runWait` specialised to `()`.
+-- 
+runWait_ :: Transport t => Churro () t Void Void -> IO ()
+runWait_ = runWait
+
 -- | Read the output of a Churro into a list.
 -- 
 -- Warning: This will block until the Churro terminates,
@@ -53,10 +65,20 @@ runWait x = wait =<< run x
 runWaitList :: (Transport t, Monoid a) => Churro a t Void b -> IO [b]
 runWaitList c = runWait $ (c >>> arr' (:[])) >>>> sink 
 
+-- | Version of `runWaitList` specialised to `()`.
+-- 
+runWaitList_ :: Transport t => Churro () t Void b -> IO [b]
+runWaitList_ = runWaitList
+
 -- | Run a sourced and sinked (double-dipped) churro and return an async action representing the in-flight processes.
 --
 run :: Transport t => Churro a t Void Void -> IO (Async a)
 run = run'
+
+-- | Version of `run` with async return type specialised to `()`.
+--
+run_ :: Transport t => Churro () t Void Void -> IO (Async ())
+run_ = run'
 
 -- | Run any churro, there is no check that this was spawned with a source, or terminated with a sink.
 --   This is unsafe, since the pipeline may not generate or consume in a predictable way.
@@ -103,6 +125,11 @@ sourceIO cb =
         yeet o Nothing
         return r
 
+-- | Variant of `sourceIO` with Async action specialised to `()`.
+-- 
+sourceIO_ :: Transport t => ((o -> IO ()) -> IO ()) -> Churro () t Void o
+sourceIO_ = sourceIO
+
 -- | Combine a list of sources into a single source.
 -- 
 -- Sends individual items downstream without attempting to combine them.
@@ -117,14 +144,25 @@ sourceIO cb =
 sources :: (Transport t, Foldable f, Traversable f) => f (Churro a t Void i) -> Churro () t Void i
 sources ss = sourceIO \cb -> do
     asyncs <- mapM (\s -> run $ s >>>> sinkIO cb) ss
-    (_, r) <- waitAny (toList asyncs)
-    return r
+    let as = toList asyncs
+    finally' (mapM_ cancel as) do
+        mapM_ wait as
 
--- | This is `sources` specialised to `()`.
+-- | Variant of `sources` with Async action of sources in argument specialised to `()`.
+-- 
 sources_ :: Transport t => [Source () t o] -> Source () t o
 sources_ = sources
 
 -- ** Sinks
+
+-- | Consume all items and combines them into a result via their monoid.
+-- 
+-- >>> :set -XFlexibleContexts
+-- >>> r <- runWaitChan $ pure' [1 :: Int] >>> sink
+-- >>> print r
+-- [1]
+sink :: (Transport t, Monoid a) => Churro a t a Void
+sink = sinkIO return
 
 -- | Consume all items with no additional effects.
 -- 
@@ -136,15 +174,6 @@ sources_ = sources
 sink_ :: Transport t => Churro () t i Void
 sink_ = sinkIO (const (return ()))
 
--- | Consume all items and combines them into a result via their monoid.
--- 
--- >>> :set -XFlexibleContexts
--- >>> r <- runWaitChan $ pure' [1 :: Int] >>> sink
--- >>> print r
--- [1]
-sink :: (Transport t, Monoid a) => Churro a t a Void
-sink = sinkIO return
-
 -- | Consume a churro with an IO process.
 -- 
 -- >>> runWaitChan $ pure 1 >>> sinkIO (\x -> print "hello" >> print (succ x))
@@ -152,6 +181,11 @@ sink = sinkIO return
 -- 2
 sinkIO :: (Transport t, Monoid a) => (o -> IO a) -> Churro a t o Void
 sinkIO cb = buildChurro \i _o -> yankAll i cb
+
+-- | Variant of `sinkIO` with Async action specialised to `()`.
+-- 
+sinkIO_ :: Transport t => (o -> IO ()) -> Churro () t o Void
+sinkIO_ cb = buildChurro \i _o -> yankAll i cb
 
 -- | Create a "sink" with more flexibility about when items are demanded using a higher-order "HO" callback.
 -- 

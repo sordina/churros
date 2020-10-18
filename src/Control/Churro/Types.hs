@@ -243,7 +243,9 @@ buildChurro' cb = Churro do
     a       <- async do cb ai ao bi
     return (ai,bo,a)
 
--- | Yeet all items from a list into a transport.
+-- | Yeet all items from a list into a raw transport.
+-- 
+-- WARNING: If you are using this to build a churro by hand make sure you yeet Nothing once you're finished.
 -- 
 yeetList :: (Foldable f, Transport t) => In t a -> f a -> IO ()
 yeetList t = mapM_ (yeet t)
