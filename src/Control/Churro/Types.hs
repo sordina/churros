@@ -268,7 +268,7 @@ yankAll c f = do
 
 -- | Yank each raw item from a transport into a callback.
 -- 
--- The items are wrapped in Maybes and when all items are yanked, Nothing is fed to the callback.
+-- The items are wrapped in Maybes and when Nothing is yanked, Nothing is fed to the callback and `yankAll'` completes.
 -- 
 yankAll' :: (Transport t, Monoid b) => Out t (Maybe a) -> (Maybe a -> IO b) -> IO b
 yankAll' c f = do

@@ -21,14 +21,15 @@ import Prelude hiding (id, (.))
 import           Control.Arrow            (arr)
 import           Control.Category         (id, (.), (>>>))
 import           Control.Concurrent       (threadDelay)
-import           Control.Concurrent.Async (cancel, Async, wait)
+import           Control.Concurrent.Async (async, cancel, Async, wait)
 import           Control.Exception        (Exception, SomeException, try)
 import           Control.Monad            (replicateM_, when)
-import           Data.Foldable            (toList, for_)
+import           Data.Foldable            (foldMap', for_)
 import           Data.Maybe               (isJust)
 import           Data.Time                (NominalDiffTime)
 import           Data.Void                (Void)
 import           GHC.Natural              (Natural)
+import Data.Traversable (for)
 
 
 -- $setup
@@ -134,19 +135,35 @@ sourceIO_ = sourceIO
 -- 
 -- Sends individual items downstream without attempting to combine them.
 -- 
--- Warning: Passing an empty list is unspecified.
--- 
--- TODO: Use NonEmptyList instead of []
--- 
--- >>> runWaitChan $ sources_ [pure 1, pure 1] >>> sinkPrint
+-- >>> runWaitChan $ sources [pure 1, pure 1] >>> sinkPrint
 -- 1
 -- 1
-sources :: (Transport t, Traversable f) => f (Churro a t Void i) -> Churro () t Void i
-sources ss = sourceIO \cb -> do
-    asyncs <- mapM (\s -> run $ s >>>> sinkIO cb) ss
-    let as = toList asyncs
-    finally' (mapM_ cancel as) do
-        mapM_ wait as
+-- 
+-- Can combine results of sources with a Monoid instance, although this isn't very useful
+-- when forming the start of a longer pipeline:
+-- 
+-- >>> :{
+-- do
+--   r <- runWaitChan $ sources [sourceIO \_cb -> print 1 >> return "hello ", sourceIO \_cb -> print 1 >> return "world"]
+--   print r
+-- :}
+-- 1
+-- 1
+-- "hello world"
+sources :: (Transport t, Traversable f, Monoid a) => f (Churro a t Void o) -> Churro a t Void o
+sources ss = buildChurro \_i o -> do
+    cs <- mapM runChurro ss
+    finally' (mapM_ (\(_,_,a) -> cancel a) cs) do
+        as <- for cs \(_i,o',a) ->
+            async do
+                yankAll' o' \v -> do
+                    case v of
+                        Nothing -> return ()
+                        Just x  -> yeet o (Just x)
+                wait a
+        r <- foldMap' wait as
+        yeet o Nothing
+        return r
 
 -- | Variant of `sources` with Async action of sources in argument specialised to `()`.
 -- 
