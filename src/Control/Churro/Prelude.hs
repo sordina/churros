@@ -141,7 +141,7 @@ sourceIO_ = sourceIO
 -- >>> runWaitChan $ sources_ [pure 1, pure 1] >>> sinkPrint
 -- 1
 -- 1
-sources :: (Transport t, Foldable f, Traversable f) => f (Churro a t Void i) -> Churro () t Void i
+sources :: (Transport t, Traversable f) => f (Churro a t Void i) -> Churro () t Void i
 sources ss = sourceIO \cb -> do
     asyncs <- mapM (\s -> run $ s >>>> sinkIO cb) ss
     let as = toList asyncs
