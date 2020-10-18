@@ -17,7 +17,7 @@ import           Control.Concurrent       (threadDelay)
 import           Control.Concurrent.Async (waitAny, Async, wait)
 import           Control.Exception        (Exception, SomeException, try)
 import           Control.Monad            (replicateM_, when)
-import           Data.Foldable            (for_)
+import           Data.Foldable            (toList, for_)
 import           Data.Maybe               (isJust)
 import           Data.Time                (NominalDiffTime)
 import           Data.Void                (Void)
@@ -114,10 +114,10 @@ sourceIO cb =
 -- >>> runWaitChan $ sources_ [pure 1, pure 1] >>> sinkPrint
 -- 1
 -- 1
-sources :: (Transport t, Monoid a) => [Source a t o] -> Source () t o
+sources :: (Transport t, Foldable f, Traversable f) => f (Churro a t Void i) -> Churro () t Void i
 sources ss = sourceIO \cb -> do
     asyncs <- mapM (\s -> run $ s >>>> sinkIO cb) ss
-    (_, r) <- waitAny asyncs
+    (_, r) <- waitAny (toList asyncs)
     return r
 
 -- | This is `sources` specialised to `()`.
