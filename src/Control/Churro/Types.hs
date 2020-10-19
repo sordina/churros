@@ -67,8 +67,8 @@ type    DoubleDipped a t = Churro a t Void Void
 class Transport (t :: * -> *) where
     data In  t :: * -> *
     data Out t :: * -> *
-    flex :: IO (In t a, Out t a)  -- ^ Create a new pair of transports.
-    yank :: Out t a -> IO a       -- ^ Yank an item of the Transport
+    flex :: IO (In t a, Out t a)  -- ^ Create a new pair of Transports.
+    yank :: Out t a -> IO a       -- ^ Yank an item off the Transport
     yeet :: In t a -> a -> IO ()  -- ^ Yeet an item onto the Transport
 
 -- | Covariant functor instance for Churro - Maps over the output.
@@ -242,6 +242,15 @@ buildChurro' cb = Churro do
     (bi,bo) <- flex
     a       <- async do cb ai ao bi
     return (ai,bo,a)
+
+-- | Helper. Finalises cancellation of async.
+-- 
+-- Use instead of runChurro unless you want to directly manage cancellation.
+-- 
+withChurro :: Churro a t i o -> (In t (Maybe i) -> Out t (Maybe o) -> Async a -> IO b) -> IO b
+withChurro c f = do
+    (i,o,a) <- runChurro c
+    finally' (cancel a) do f i o a
 
 -- | Yeet all items from a list into a raw transport.
 -- 

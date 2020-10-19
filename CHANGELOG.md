@@ -1,5 +1,10 @@
 # Revision history for Churros
 
+## 0.1.4.1 -- 2020-10-20
+
+* Adding `processes` function that runs a set of processes over the input.
+* Adding `withChurro` helper function.
+
 ## 0.1.4.0 -- 2020-10-18
 
 * Generalising list type to Foldable/Traversible where possible (`sources`).

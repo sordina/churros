@@ -39,6 +39,7 @@ import Data.Traversable (for)
 -- >>> :set -XBlockArguments
 -- >>> import Control.Churro.Transport
 -- >>> import Data.Time.Clock
+-- >>> import System.Timeout (timeout)
 -- 
 
 -- * Runners
@@ -264,6 +265,75 @@ processN f =
     buildChurro \i o -> do
         yankAll i \x -> do mapM_ (yeet o . Just) =<< f x
         yeet o Nothing
+
+-- | Concatenates splits lists of items into individual items.
+-- 
+concatC :: Transport t => Churro () t [o] o
+concatC = processN (pure . id)
+
+-- | Run a set of churros like a work-stealing queue for its inputs.
+-- 
+-- Similar to ArrowChoice, but more straightforward due to unified output type and independent implementation.
+-- 
+-- Note: `processes` makes no judgement about the ordering of outputs corresponding to the ordering of inputs.
+-- 
+-- TODO: Figure out cancellation strategy.
+-- TODO: Consider a binary combinator and this as a folded application.
+-- 
+-- WARNING: This won't deterministically allocate work to idle workers unless a bounded channel is used.
+-- 
+-- Sanity check - All items entering should propagate, independent of the number of processes:
+-- 
+-- >>> runWaitListChan $ sourceList [1,1,1,1,1] >>> processes (replicate 3 (delay 0.1))
+-- [1,1,1,1,1]
+-- 
+-- This example creates a source of 10 values, then creates a process of 10 workers that all wait 1/2 a second.
+-- If this works, then all ten values should be consumed and propagated in 1/2 a second by distributing the load
+-- over the set of 10 workers:
+-- 
+-- >>> :{
+-- do
+--   timeout 10000000 $ runWaitListChan $ sourceList (replicate 10 1) >>> processes (replicate 1 $ delay 0.05)
+-- :}
+-- Just [1,1,1,1,1,1,1,1,1,1]
+-- 
+-- We could use different strategies such as round-robin, etc. to default to a more balanced allocation, but this wouldn't
+-- be most efficient if each worker performed at different rates of consumption.
+-- 
+processes :: (Traversable f, Transport t, Monoid a) => f (Churro a t i o) -> Churro a t i o
+processes cs = Churro do
+    (i,  o ) <- flex
+    (i', o') <- flex
+
+    let
+        worker c = async do
+            withChurro c \ci co ca -> do
+                a' <- async do
+                    c2c' co i'
+                    yeet i Nothing -- Ensure other consumers aren't blocked. FIXME: This produces once more Nothing than is required.
+                c2c id o ci
+                wait a'
+                wait ca
+
+    as <- mapM worker cs
+
+    a  <- async do
+        r <- foldMap' wait as
+        yeet i' Nothing -- Make sure to conclude the process once all the processes have finished consuming
+        return r
+
+    return (i,o',a)
+
+    where
+    -- Version of c2c that doesn't propagate Nothing once transport is consumed.
+    -- This is required here since we don't want a worker to be able to prematurely terminate the processes
+    -- While an earlier slower works still hasn't finished propagating its result.
+    c2c' o i = yankAll o (yeet i . Just)
+
+-- | Set up N worker churro processes to concurrently process the stream.
+-- 
+thief :: (Transport t, Monoid a) => Int -> Churro a t i o -> Churro a t i o
+thief n c = processes (replicate n c)
 
 -- | Extract xs from (Just x)s. Similar to `catMaybes`.
 -- 
