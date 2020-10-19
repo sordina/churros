@@ -275,16 +275,22 @@ concatC = processN (pure . id)
 -- 
 -- Similar to ArrowChoice, but more straightforward due to unified output type and independent implementation.
 -- 
--- Note: `processes` makes no judgement about the ordering of outputs corresponding to the ordering of inputs.
--- 
--- TODO: Figure out cancellation strategy.
--- TODO: Consider a binary combinator and this as a folded application.
+-- * NOTE: This makes no judgement about the ordering of outputs corresponding to the ordering of inputs.
+-- * NOTE: You will need to specialise the transport of the processes. This is deliberate as it allows you
+--         to use a bounded channel that ensures allocation to idle processes.
+--         Use the `processesUnagi` variant from `Control.Churro.Transport.Unagi.Bounded` to default to
+--         a buffer size of 1.
 -- 
 -- WARNING: This won't deterministically allocate work to idle workers unless a bounded channel is used.
 -- 
+-- * TODO: Figure out cancellation strategy.
+-- * TODO: Consider a binary combinator and this as a folded application.
+-- 
+-- >>> import Control.Churro.Transport.Unagi.Bounded (processesUnagi)
+-- 
 -- Sanity check - All items entering should propagate, independent of the number of processes:
 -- 
--- >>> runWaitListChan $ sourceList [1,1,1,1,1] >>> processes (replicate 3 (delay 0.1))
+-- >>> runWaitListChan $ sourceList [1,1,1,1,1] >>> processesUnagi (replicate 3 (delay 0.1))
 -- [1,1,1,1,1]
 -- 
 -- This example creates a source of 10 values, then creates a process of 10 workers that all wait 1/2 a second.
@@ -293,14 +299,14 @@ concatC = processN (pure . id)
 -- 
 -- >>> :{
 -- do
---   timeout 10000000 $ runWaitListChan $ sourceList (replicate 10 1) >>> processes (replicate 1 $ delay 0.05)
+--   timeout 10000000 $ runWaitListChan $ sourceList (replicate 10 1) >>> processesUnagi (replicate 1 $ delay 0.05)
 -- :}
 -- Just [1,1,1,1,1,1,1,1,1,1]
 -- 
 -- We could use different strategies such as round-robin, etc. to default to a more balanced allocation, but this wouldn't
 -- be most efficient if each worker performed at different rates of consumption.
 -- 
-processes :: (Traversable f, Transport t, Monoid a) => f (Churro a t i o) -> Churro a t i o
+processes :: (Traversable f, Transport t1, Transport t2, Monoid a) => f (Churro a t1 i o) -> Churro a t2 i o
 processes cs = Churro do
     (i,  o ) <- flex
     (i', o') <- flex
@@ -310,8 +316,9 @@ processes cs = Churro do
             withChurro c \ci co ca -> do
                 a' <- async do
                     c2c' co i'
-                    yeet i Nothing -- Ensure other consumers aren't blocked. FIXME: This produces once more Nothing than is required.
-                c2c id o ci
+                    yeet i Nothing -- Ensure other consumers aren't blocked. FIXME: This produces one more `Nothing` than is required.
+                c2c' o ci
+                yeet ci Nothing
                 wait a'
                 wait ca
 
@@ -328,6 +335,8 @@ processes cs = Churro do
     -- Version of c2c that doesn't propagate Nothing once transport is consumed.
     -- This is required here since we don't want a worker to be able to prematurely terminate the processes
     -- While an earlier slower works still hasn't finished propagating its result.
+    -- 
+    c2c' :: (Transport t1, Transport t2) => Out t1 (Maybe i) -> In t2 (Maybe i) -> IO ()
     c2c' o i = yankAll o (yeet i . Just)
 
 -- | Set up N worker churro processes to concurrently process the stream.
