@@ -342,7 +342,9 @@ processes cs = Churro do
 
 -- | Set up N worker churro processes to concurrently process the stream.
 -- 
-thief :: (Transport t, Monoid a) => Int -> Churro a t i o -> Churro a t i o
+-- Consider using `thiefUnagi` unless you have a requirement for controlling the transport of the process group.
+-- 
+thief :: (Transport t1, Transport t2, Monoid a) => Int -> Churro a t1 i o -> Churro a t2 i o
 thief n c = processes (replicate n c)
 
 -- | Extract xs from (Just x)s. Similar to `catMaybes`.
