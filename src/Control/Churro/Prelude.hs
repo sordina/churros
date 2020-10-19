@@ -334,7 +334,8 @@ processes cs = Churro do
     where
     -- Version of c2c that doesn't propagate Nothing once transport is consumed.
     -- This is required here since we don't want a worker to be able to prematurely terminate the processes
-    -- While an earlier slower works still hasn't finished propagating its result.
+    -- while an earlier slower worker still hasn't finished propagating its result.
+    -- Also allows two different types of Transport.
     -- 
     c2c' :: (Transport t1, Transport t2) => Out t1 (Maybe i) -> In t2 (Maybe i) -> IO ()
     c2c' o i = yankAll o (yeet i . Just)
