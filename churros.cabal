@@ -42,7 +42,8 @@ library
     Control.Churro.Transport,
     Control.Churro.Transport.Chan
     Control.Churro.Transport.Unagi
-    Control.Churro.Transport.Unagi.Bounded
+    Control.Churro.Transport.MVar
+    Control.Churro.Transport.MVar.Latest
 
 test-suite churros-test
   import:            churros-dependencies

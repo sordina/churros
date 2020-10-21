@@ -50,13 +50,15 @@ runWaitUnagi = runWait
 runWaitListUnagi :: KnownNat n => ChurroUnagiBounded () n Void o -> IO [o]
 runWaitListUnagi = runWaitList
 
--- A version of processes that mandates the use of a single item buffer for the internal processes.
+-- | A version of processes that mandates the use of a single item buffer for the internal processes.
+-- 
 -- This is useful in order to prevent allocating to processes that are not yet idle.
 -- 
 processesUnagi :: (Traversable f, Transport t, Monoid a) => f (ChurroUnagiBounded a 1 i o) -> Churro a t i o
 processesUnagi = processes
 
--- A version of thief that mandates the use of a single item buffer for the internal processes.
+-- | A version of thief that mandates the use of a single item buffer for the internal processes.
+-- 
 -- This is useful in order to prevent allocating to processes that are not yet idle.
 -- 
 thiefUnagi :: (Transport t, Monoid a) => Int -> ChurroUnagiBounded a 1 i o -> Churro a t i o
