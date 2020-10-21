@@ -6,7 +6,11 @@
 -- | MVar Transport Instance. New items overwrite the current queued item.
 -- 
 -- Useful in subscription-like contexts where you don't care about outdated values.
-
+-- 
+-- This is surprisingly useful since it doesn't block sources, but also doesn't accumulate items.
+-- 
+-- WARNING: Don't use if you want to ensure that all produced items are consumed!
+-- 
 module Control.Churro.Transport.MVar.Latest where
     
 import Control.Churro.Types

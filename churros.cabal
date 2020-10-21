@@ -60,4 +60,6 @@ test-suite churros-test
     Control.Churro.Transport.Chan
     Control.Churro.Transport.Unagi
     Control.Churro.Transport.Unagi.Bounded
+    Control.Churro.Transport.MVar
+    Control.Churro.Transport.MVar.Latest
     Churro.Test.Examples

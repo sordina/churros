@@ -16,7 +16,9 @@ import Prelude hiding (id, (.))
 
 import Control.Churro
 import Control.Concurrent.Async (wait)
-import Control.Concurrent (Chan)
+import Control.Concurrent (MVar, Chan)
+import Control.Churro.Transport.MVar ()
+import Control.Churro.Transport.MVar.Latest (Latest)
 
 -- $setup
 -- 
@@ -63,6 +65,25 @@ pipeline = sourceList (take 3 maps)
     where
     maps    = map fromList $ zipWith zip updates updates
     updates = map (take 2) (tails [0 :: Int ..])
+
+-- | Combination of different transports:
+
+mvarTest :: Churro () MVar Void Void
+mvarTest = sourceIO @MVar (\cb -> cb (1 :: Int) >> cb 2 >> cb 3) >>> delay 1 >>> sinkPrint
+
+latestTest :: Churro () Latest Void Void
+latestTest = sourceIO @Latest (\cb -> cb (1 :: Int) >> cb 2 >> cb 3) >>> delay 1 >>> sinkPrint
+
+-- | Should only output the latest values after sink is free to consume
+-- 
+-- >>> runWait mvarTest
+-- 1
+-- 2
+-- 3
+
+-- >>> runWait latestTest
+-- 1
+-- 3
 
 -- | Consumers terminaiting should kill sources from producing.
 -- 
