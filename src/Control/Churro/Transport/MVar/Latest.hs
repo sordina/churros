@@ -28,12 +28,12 @@ instance Transport Latest where
 
 type ChurroLatest a = Churro a Latest
 
--- | Convenience function for running a Churro with a Chan Transport.
+-- | Convenience function for running a Churro with a MVar backed Latest Transport.
 -- 
-runWaitChan :: ChurroLatest a Void Void -> IO a
-runWaitChan = runWait
+runWaitLatest :: ChurroLatest a Void Void -> IO a
+runWaitLatest = runWait
 
--- | Convenience function for running a Churro into a List with a Chan Transport.
+-- | Convenience function for running a Churro into a List with a MVar backed Latest Transport.
 -- 
-runWaitListChan :: ChurroLatest () Void o -> IO [o]
-runWaitListChan = runWaitList
+runWaitListLatest :: ChurroLatest () Void o -> IO [o]
+runWaitListLatest = runWaitList

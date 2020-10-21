@@ -23,12 +23,12 @@ instance Transport MVar where
 
 type ChurroMVar a = Churro a MVar
 
--- | Convenience function for running a Churro with a Chan Transport.
+-- | Convenience function for running a Churro with an MVar Transport.
 -- 
-runWaitChan :: ChurroMVar a Void Void -> IO a
-runWaitChan = runWait
+runWaitMVar :: ChurroMVar a Void Void -> IO a
+runWaitMVar = runWait
 
--- | Convenience function for running a Churro into a List with a Chan Transport.
+-- | Convenience function for running a Churro into a List with an MVar Transport.
 -- 
-runWaitListChan :: ChurroMVar () Void o -> IO [o]
-runWaitListChan = runWaitList
+runWaitListMVar :: ChurroMVar () Void o -> IO [o]
+runWaitListMVar = runWaitList
