@@ -1,5 +1,7 @@
 
-packages: .
+packages:
+  .,
+  ./churros-fgl
 
 package *
   ghc-options: -j

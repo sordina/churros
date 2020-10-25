@@ -16,7 +16,7 @@ description:         The Churro library takes an opinionated approach to streami
 extra-doc-files:  
   CHANGELOG.md
   README.md
-  
+
 source-repository head
   type:     git
   location: git@github.com:sordina/churros.git
