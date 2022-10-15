@@ -9,7 +9,7 @@ jobs:
         ghc:
           - version: "9.2.4"
             action: |
-              echo "::add-path::/opt/ghc/9.2.4/bin" >> $GITHUB_PATH
+              echo "/opt/ghc/9.2.4/bin" >> $GITHUB_PATH
         cabal:
           - version: "3.2.0.0"
             action: |
