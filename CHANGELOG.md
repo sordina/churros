@@ -1,5 +1,10 @@
 # Revision history for Churros
 
+## 0.1.6.0 -- 2022-10-16
+
+* Bump base dependency bounds to allow use of GHC 9.x
+* Fix warnings
+
 ## 0.1.5.1 -- 2020-10-20
 
 * Generalising processes to allow for different transport for process group.
