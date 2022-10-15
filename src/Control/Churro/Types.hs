@@ -15,6 +15,7 @@ import Control.Arrow
 import Control.Category
 import Control.Concurrent.Async (cancel, wait, Async, async)
 import Data.Void
+import Data.Kind (Type)
 import Control.Exception (finally)
 
 -- $setup
@@ -64,9 +65,9 @@ type    DoubleDipped a t = Churro a t Void Void
 -- Channels like Chan that have a single channel act as in/out simply reuse the
 -- same channel in the pair returned.
 -- 
-class Transport (t :: * -> *) where
-    data In  t :: * -> *
-    data Out t :: * -> *
+class Transport (t :: Type -> Type) where
+    data In  t :: Type -> Type
+    data Out t :: Type -> Type
     flex :: IO (In t a, Out t a)  -- ^ Create a new pair of Transports.
     yank :: Out t a -> IO a       -- ^ Yank an item off the Transport
     yeet :: In t a -> a -> IO ()  -- ^ Yeet an item onto the Transport
@@ -143,13 +144,13 @@ instance (Transport t, Monoid a) => Applicative (Churro a t Void) where
                 fx <- yank fo
                 gx <- yank go
                 case (fx, gx) of
-                    (Just f', Just g') -> (yeet o $ Just (f' g')) >> prog
+                    (Just f', Just g') -> yeet o (Just (f' g')) >> prog
                     _                  -> return ()
 
         -- TODO: Should we cancel asyncs here in finally block?
         prog
         yeet o Nothing
-        wait fa
+        _ <- wait fa
         wait ga
 
 -- | More general variant of `pure` with Monoid constraint.
