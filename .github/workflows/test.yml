@@ -24,17 +24,4 @@ jobs:
         with:
           ghc-version: ${{matrix.ghc.version}}
           cabal-version: ${{matrix.cabal.version}}
-      - run: cabal build
       - run: cabal exec cabal test
-
-# jobs:
-#   runhaskell:
-#     name: Hello World
-#     runs-on: ubuntu-latest # or macOS-latest, or windows-latest
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: haskell/actions/setup@v2
-#         with:
-#           ghc-version: '8.8' # Resolves to the latest point release of GHC 8.8
-#           cabal-version: '3.0.0.0' # Exact version of Cabal
-#       - run: runhaskell Hello.hs
