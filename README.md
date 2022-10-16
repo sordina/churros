@@ -1,6 +1,6 @@
 # Churros
 
-![Github Actions](https://github.com/sordina/churros/actions/workflows/test.yml/badge.svg)
+[![Github Actions](https://github.com/sordina/churros/actions/workflows/test.yml/badge.svg)](https://github.com/sordina/churros/actions/workflows/test.yml)
 
 > Chan + Arrow = Churro
 
