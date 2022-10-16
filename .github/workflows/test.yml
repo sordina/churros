@@ -11,7 +11,7 @@ jobs:
             action: |
               echo "/opt/ghc/9.2.4/bin" >> $GITHUB_PATH
         cabal:
-          - version: "3.2.0.0"
+          - version: "3.6.2.0"
             action: |
               echo "/opt/cabal/3.2/bin" >> $GITHUB_PATH
 
