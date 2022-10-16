@@ -24,4 +24,5 @@ jobs:
         with:
           ghc-version: ${{matrix.ghc.version}}
           cabal-version: ${{matrix.cabal.version}}
+      - run: cabal build
       - run: cabal exec cabal test
