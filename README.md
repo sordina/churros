@@ -1,5 +1,7 @@
 # Churros
 
+![Github Actions](https://github.com/sordina/churros/actions/workflows/test.yml/badge.svg)
+
 > Chan + Arrow = Churro
 
 Simple alternative to
