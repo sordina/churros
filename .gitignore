@@ -1,3 +1,4 @@
 dist-newstyle/
 docs/
+cache/
 cabal.project.local

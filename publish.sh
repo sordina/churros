@@ -19,7 +19,7 @@ echo "proceed? "
 read -r
 
 cabal sdist
-cabal haddock --builddir="$dir" --haddock-for-hackage --enable-doc
+cabal haddock --builddir="$dir" --haddock-for-hackage
 
 find "$dir" | grep index.html | head -n 1 | xargs open
 
