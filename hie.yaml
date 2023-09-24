@@ -1,5 +1,12 @@
 cradle:
     multi:
+      - path: "./churros-fgl"
+        config:
+          cradle:
+            cabal:
+              - path: "./churros-fgl/src"
+                component: "lib:churros-fgl"
+
       - path: "./"
         config:
           cradle:
